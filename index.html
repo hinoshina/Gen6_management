@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1">
+  <title>Gen6 個体管理（ローカル）</title>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- PWA: ホーム画面に追加してオフラインでも使えるようにするための設定 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2b7cff">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <!-- iOSのホーム画面追加アプリ向け設定（Safariのアドレスバー等を非表示にしてアプリらしく表示する） -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Gen6管理">
+</head>
+<body>
+  <!-- <header>
+    <h1>育成個体リスト（ローカル表示用）</h1>
+  </header> -->
+  <div class="container">
+    <div class="controls">
+      <!-- top row: search input + toggle, advanced panel placeholder, then sort/reset -->
+      <input id="q" type="text" placeholder="検索: 名前・技・持ち物・タグ を含む" onfocus="this.select()"/>
+      <button id="toggle-advanced" class="small" aria-expanded="false" title="詳細検索を開く">＋</button>
+      <button id="add-instance-btn" class="small" title="新しい個体を追加">追加</button>
+
+      <!-- 詳細パネル（初期は非表示）。DOM 上はトグル直後に置き、ソート/リセットはその後に続く -->
+      <div id="advanced-search" class="adv-panel" aria-hidden="true" style="display:none;margin:8px 0; width:100%">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <label>ポケモン名</label>
+            <input id="adv-name" placeholder="ポケモン名で絞り込み" class="search-area" onfocus="this.select()"/>
+          </div>
+          <div>
+            <label>特性</label>
+            <input id="adv-ability" placeholder="特性で絞り込み" class="search-area" onfocus="this.select()"/>
+          </div>
+        </div>
+
+        <!-- タイプ -->
+        <div style="margin-top:8px;border:1px solid #ddd;border-radius:6px;padding:8px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <label style="min-width:80px">タイプ</label>
+            <label style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="type-mode" value="AND" /> AND</label>
+            <label style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="type-mode" value="OR" /> OR</label>
+            <button id="type-clear-all" class="small" title="タイプを全てクリア">クリア</button>
+          </div>
+          <div id="type-rows" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+
+        <!-- 技 -->
+        <div style="margin-top:8px;border:1px solid #ddd;border-radius:6px;padding:8px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <label style="min-width:80px">技</label>
+            <label style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="move-mode" value="AND" /> AND</label>
+            <label style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="move-mode" value="OR" /> OR</label>
+            <button id="move-clear-all" class="small" title="技を全てクリア">クリア</button>
+          </div>
+          <div id="move-rows" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+        </div>
+
+        <div style="margin-top:8px;display:flex;gap:12px;align-items:center">
+          <div>
+            <label>メガ</label>
+            <select id="adv-mega">
+              <option value="-">-</option>
+              <option value="only">メガのみ</option>
+              <option value="exclude">メガを除外</option>
+            </select>
+          </div>
+          <div>
+            <label>メモ (詳細)</label>
+            <input id="adv-memo" placeholder="メモで絞り込み" class="search-area" onfocus="this.select()"/>
+          </div>
+        </div>
+
+        <div style="margin-top:8px;display:grid;grid-template-columns:repeat(3,auto) 1fr;gap:8px;align-items:center">
+          <div style="display:flex;flex-direction:column;gap:3px;margin-right:5px">
+            <label style="margin:0"><input type="checkbox" id="cat-normal" checked /> <span style="white-space:nowrap">一般</span></label>
+            <label style="margin:0"><input type="checkbox" id="cat-legend" /> <span style="white-space:nowrap">禁伝</span></label>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;margin-right:20px">
+            <label style="margin:0"><input type="checkbox" id="cat-ub" checked /> <span style="white-space:nowrap">準伝</span></label>
+            <label style="margin:0"><input type="checkbox" id="cat-myth" /> <span style="white-space:nowrap">幻</span></label>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="margin:0"><input type="checkbox" id="cat-raised" /> <span style="white-space:nowrap">育成済み</span></label>
+            <label style="margin:0"><input type="checkbox" id="cat-unraised" /> <span style="white-space:nowrap">未育成</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- adv-sort-field moved here (controls) -->
+      <div style="display:flex;gap:8px;align-items:center">
+        <div>
+          <select id="adv-sort-field" class="small">
+            <option value="S">S</option>
+            <option value="A">A</option>
+            <option value="C">C</option>
+            <option value="AorC">AorC</option>
+            <option value="dex">図鑑番号</option>
+          </select>
+        </div>
+        <div>
+          <button id="adv-sort-dir" class="small">↓</button>
+        </div>
+      </div>
+      <button id="reset" class="small">リセット</button>
+      <div class="form-buttons" id="adv-form-buttons">
+        <button class="btn active">盾</button>
+        <button class="btn secondary">剣</button>
+      </div>
+      <button id="adv-mega-toggle" class="level-btn">通常</button>
+    </div>
+    <!-- Persistent Storage（データ永続化）の許可状況を表示する小さな表示欄。デザインは後日調整予定 -->
+    <div id="storage-status" class="storage-status"></div>
+    <div id="list" class="list"></div>
+  </div>
+
+  <div id="modal" class="modal" role="dialog" aria-hidden="true">
+    <div class="panel">
+      <div class="row">
+        <p id="m_name">ポケモン名</p>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:3px">
+        <div id="m_props" style="flex:1">
+          <div id="m_ability_row" style="display:flex;align-items:center">
+            <div id="m_ability" class="meta"></div>
+          </div>
+          <div id="m_nature" class="meta" style="margin-top:2px"></div>
+          <!-- 道具とフォルムボタンを同じ行に配置（道具左、ボタン右） -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
+            <div id="m_item_prop" class="meta"></div>
+            <div style="margin-left:12px"><div class="form-buttons" id="formButtons"></div></div>
+          </div>
+        </div>
+        <!-- レベルをモーダル右端に表示 -->
+        <div id="m_level" class="meta" style="margin-left:12px;white-space:nowrap"></div>
+      </div>
+      <div id="m_stats" style="margin-top:8px"></div>
+      <div id="m_more" style="margin-top:8px"></div>
+    </div>
+    <!-- close button moved outside panel so it won't be clipped by panel's overflow -->
+    <button id="closeModal" class="close-btn" aria-label="閉じる" style="font-size: 20px;">×</button>
+  </div>
+
+
+  <!-- 固定データ（種族・性格・タイプ相性など）。開発者がこのファイルを直接編集して更新する -->
+  <script src="gen6-constants.js"></script>
+  <!-- ユーザー編集対象データ（instances）の初期シード。IndexedDBが空の場合の初回投入データとして使用 -->
+  <script src="gen6-initial-instances.js"></script>
+  <!-- IndexedDB アクセス層（instancesの永続化・Persistent Storageの要求/確認） -->
+  <script src="gen6-db.js"></script>
+  <!-- 画面ロジック本体 -->
+  <script src="app.js"></script>
+
+  <!-- PWA: Service Workerを登録し、アプリ本体を圏外でも読み込めるようにする。
+       登録に失敗してもアプリ自体（IndexedDBを使った通常の動作）には影響しない。 -->
+  <script>
+    if('serviceWorker' in navigator){
+      window.addEventListener('load', ()=>{
+        navigator.serviceWorker.register('service-worker.js').catch((err)=>{
+          console.warn('Service Workerの登録に失敗しました（オフライン動作ができない可能性がありますが、通常の動作には影響ありません）', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

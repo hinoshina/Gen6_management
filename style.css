@@ -1,0 +1,162 @@
+/* style.css */
+/* 6gen_management.html の <style> ブロックをそのまま分離したもの（挙動は変更していない） */
+
+    /* シンプルでスマホ向けのスタイル */
+    html{touch-action: manipulation;}
+    :root{--bg:#f8f9fb;--card:#fff;--muted:#000000;--accent:#2b7cff}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; margin:0; background:var(--bg); color:#111}
+    header{background:linear-gradient(90deg,#0b63d6,#2b7cff); color:#fff; padding:12px 16px}
+    header h1{margin:0;font-size:18px}
+    .container{padding:12px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+    .controls input[type=text], .controls select{flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;background:#fff}
+    .controls .small{flex:0 0 140px}
+    #reset{flex:0 0 70px;min-width:70px;margin-right: 30px;}
+    #add-instance-btn{flex:0 0 60px;min-width:60px;width:60px}
+    /* 並び替えセレクトと矢印ボタンの高さを統一 */
+    #adv-sort-field, #adv-sort-dir{height:34px;padding:4px 8px;box-sizing:border-box}
+    /* タイプと技のクリアボタン（AND/ORの右）の幅を固定 */
+    #type-clear-all, #move-clear-all{flex:0 0 70px;min-width:70px;width:70px;padding:4px;box-sizing:border-box}
+    /* 小さいクリアボタン（タイプ / 技 行の ×）幅を固定
+       .controls .small で設定された flex:0 0 140px を上書きするため flex を明示的に指定 */
+      #type-rows .small, #move-rows .small {
+        width:40px; min-width:40px; padding:0; height:20px; box-sizing:border-box;
+        flex: 0 0 40px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; line-height:1;
+        border-radius:0%;
+      }
+      /* タイプ行の幅を固定（幅: 入力40px / 主セレクト30px / 比較セレクト20px） */
+      #type-rows > div input { box-sizing:border-box; width:100px; min-width:100px; max-width:100px; flex: 0 0 40px }
+      #type-rows > div select:nth-of-type(1) { box-sizing:border-box; width:90px; min-width:90px; max-width:90px; flex: 0 0 30px }
+      #type-rows > div select:nth-of-type(2) { box-sizing:border-box; width:70px; min-width:70px; max-width:70px; flex: 0 0 20px }
+      /* 技のテキストボックス幅を約10px縮める（セル幅から10px差し引く） */
+      #move-rows > div input { box-sizing:border-box; flex: 0 0; width:120px; min-width:120px; max-width:120px; }
+    /* Persistent Storageの許可状況表示（控えめな見た目。デザインは後日調整予定） */
+    .storage-status{font-size:11px;color:#888;margin:2px 0 6px 2px}
+    .list{display:grid;grid-template-columns:1fr;gap:5px}
+    /* .card はスワイプ削除のための外枠（角丸のクリッピングと相対配置のみを担当） */
+    .card{border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.06);position:relative;overflow:hidden}
+    .card{width:100%;box-sizing:border-box}
+    /* 実際に見えているカードの中身。左へスワイプするとこの要素だけがtransformで動く */
+    .card-swipe-content{background:var(--card);border-radius:10px;padding:1px 10px;box-sizing:border-box;width:100%;display:flex;flex-direction:column;position:relative;z-index:1;touch-action:pan-y}
+    /* スワイプで裏から現れる削除ボタン */
+    .card-delete-btn{position:absolute;top:0;right:0;bottom:0;width:76px;border:0;background:#e04b4b;color:#fff;font-size:13px;font-weight:700;cursor:pointer;z-index:0}
+    .card-inner{width:100%}
+  /* カードの中を左右に分割 */
+  .card-inner{display:flex;gap:8px}
+  .card-left{flex:7;display:flex;flex-direction:column}
+  .card-right{flex:2;display:flex;flex-direction:column;align-items:flex-end}
+  .types-stack{display:flex;flex-direction:column;gap:2px;font-weight:700;font-size: 10px;}
+  /* types-stack の横幅を固定して名前位置が動かないようにする */
+  .types-stack{flex:0 0 64px;min-width:64px}
+  .moves-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+  .moves-grid .move{font-size:13px;padding:1px 6px;border-radius:6px;background:#f0f0f0}
+  .moves-area{display:flex;gap:8px;margin-top:2px}
+  .moves-col{flex:1;display:flex;flex-direction:column;gap:3px}
+  .moves-col .move{font-size:13px;padding:1px 6px;border-radius:6px;background:#f0f0f0}
+  .ability-item{font-size:12px;color:var(--muted);margin-top:3px}
+  .stats-table{font-size:10px;border-collapse:collapse;text-align:right}
+  .stats-table td{padding:0.3px 6px}
+    .row{display:flex;justify-content:space-between;align-items:center}
+  .meta{font-size:12px;color:var(--muted)}
+  /* 特性／性格／道具の文字サイズを 14px にする（上書き） */
+  #m_ability, #m_nature, #m_item_prop { font-size:14px }
+    .stats{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+    .stat{font-size:12px;padding:4px 6px;border-radius:6px;background:#f2f4f8}
+    .iv{display:inline-block;padding:2px 6px;border-radius:4px;margin-right:4px;font-weight:700}
+    /* IV 背景色 */
+    .iv-31{background:#fff;color:#000;border:1px solid #ddd}
+    .iv-0{background:#cfe8ff;color:#003366}
+    .iv-x{background:#c6f7d6;color:#004d00}
+    .iv-mid{background:#ffdede;color:#400000}
+    /* 実数値の色（性格） */
+    .stat-value{font-weight:bold}
+    .stat-value.up{color:#c00}
+    .stat-value.down{color:rgb(81, 81, 254)}
+    .stat-value.none{color:#000}
+    /* モーダル */
+    .modal{position:fixed;left:0;top:0;width:93%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);padding:16px}
+    .modal.open{display:flex}
+    .modal .panel{position:relative;width:100%;max-width:760px;background:var(--card);border-radius:12px;padding:12px;height:70vh;max-height:70vh;overflow:auto}
+    /* モーダル内タイトルの余白を小さくする */
+    #m_name{margin:3px 0}
+  /* modal table styling */
+  .modal-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+  .modal-table th{background:#f1a751;color:#fff;padding:3px 6px;text-align:center;border:1px solid #e6e6e6}
+  .modal-table td{padding:3px 6px;text-align:center;border:1px solid #e6e6e6}
+  .modal-table .label{background:#f1a751;color:#fff;text-align:center;padding:6px}
+  .modal-table .base{background:#f1a751;color:#fff}
+  /* 固定レイアウト：左列はラベル幅固定、その他6列は均等に割る */
+  .modal-table{table-layout:fixed}
+  .modal-table .label{width:60px}
+  .modal-table th:not(.label), .modal-table td:not(.label){width:calc((100% - 60px) / 6)}
+  /* modal moves boxed */
+  .modal-move{border:1px solid #e6e6e6;padding:4px 8px;border-radius:6px;text-align:center;background:#fff}
+  .memo-box{box-sizing:border-box;line-height:1.2em;height:calc(1.2em * 6 + 12px);overflow:auto;border:1px solid #eee;padding:6px;border-radius:6px;background:#fafafa;font-size:14px}
+  /* 検索タグ欄は常に2行分表示 */
+  .tags-box{box-sizing:border-box;line-height:1.2em;height:calc(1.2em * 2 + 12px);overflow:auto;border:1px solid #eee;padding:6px;border-radius:6px;background:#fafafa;font-size:12px}
+  /* モーダルヘッダの固定レイアウト：名前とタイプを左右に固定配置 */
+  .m_header{display:flex;align-items:center;justify-content:space-between}
+  /* 名前表示：8文字分の幅を確保し折り返しを防ぐ */
+  .m_name_text{flex:1;min-width:calc(9ch + 24px);font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    /* タイプは左に縦並び、固定幅。名前は右側に表示する */
+    .m_types{flex:0 0 88px;display:flex;flex-direction:column;justify-content:center;gap:4px;align-items:flex-start}
+    .m_type{width:100%;text-align:left;font-weight:700;font-size:12px}
+
+  /* ===== 編集モード用スタイル ===== */
+  /* 名前行右端の編集ボタン */
+  .edit-toggle-btn{flex:0 0 auto;margin-left:8px;background:#f1f1f1;border:1px solid #ccc;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;white-space:nowrap}
+  .edit-toggle-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  /* 名前/道具/技などの編集用テキスト入力 */
+  .edit-text-input{box-sizing:border-box;width:100%;font-size:14px;padding:2px 4px;border:1px solid #ccc;border-radius:4px}
+  .edit-item-input{width:140px}
+  .edit-name-input{font-weight:700;font-size:16px;flex:1;min-width:0}
+  .edit-select{box-sizing:border-box;font-size:14px;padding:2px 4px;border:1px solid #ccc;border-radius:4px}
+  .edit-memo-textarea{box-sizing:border-box;width:100%;min-height:calc(1.2em * 6 + 12px);font-size:14px;padding:6px;border:1px solid #ccc;border-radius:6px;resize:vertical}
+  /* 性格：無補正ボタン */
+  .neutral-btn{margin-left:6px;background:#f1f1f1;border:1px solid #ccc;border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer}
+  .neutral-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  /* 実数値/努力値/個体値 入力セル（テーブル内で使用） */
+  .modal-table input.stat-input{box-sizing:border-box;width:100%;text-align:center;border:1px solid #ccc;border-radius:4px;font-size:12px;padding:1px 2px}
+  /* 実数値が「入力値のまま到達不能」な場合の赤色表示 */
+  .real-mismatch{color:#c00 !important;font-weight:700}
+  /* 努力値 0/252 切り替えボタン（テーブル内、各列に1つ） */
+  .ev-toggle-btn{width:100%;font-size:11px;padding:1px 0;border:1px solid #ccc;border-radius:4px;background:#f5f5f5;cursor:pointer}
+  /* 性格の上昇/下降を選ぶ矢印ボタン（テーブル内、A/B/C/D/S列のみ） */
+  .nature-arrow-cell{display:flex;flex-direction:column;gap:1px}
+  .nature-arrow-btn{width:100%;font-size:10px;line-height:1.3;padding:0;border:1px solid #ccc;border-radius:3px;background:#f5f5f5;cursor:pointer}
+  .nature-arrow-btn.active-up{background:#c00;color:#fff;border-color:#c00}
+  .nature-arrow-btn.active-down{background:#3355ff;color:#fff;border-color:#3355ff}
+  /* 閉じるボタンを丸くする */
+  .close-btn{background:#eee;border:0;padding:6px 8px;border-radius:999px;width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;font-size:16px}
+  .close-btn:hover{background:#e0e0e0}
+    /* 閉じるボタンを丸くにする。位置は JS で調整するためここでは absolute 指定しない */
+    .close-btn{background:#eee;border:0;padding:6px 8px;border-radius:999px;width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;z-index:9999}
+    .close-btn:hover{background:#e0e0e0}
+  /* レベル切替ボタン */
+  .level-btn{background:#f1f1f1;border:1px solid #ddd;border-radius:6px;padding:4px 8px;font-size:13px;cursor:pointer}
+  .level-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  /* リストカード内の名前領域を固定（タイプ幅に依らず位置が変わらない） */
+  /* リスト内の名前は8文字分の幅を確保して折り返しを防ぐ */
+  .card-name{flex:1;min-width:calc(9ch + 24px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    /* legacy close-btn kept for backward-compat */
+  /* フォルムボタン：くっついたラジオボタン風 */
+  .form-buttons{display:inline-flex;gap:0;align-items:center;border:1px solid #666;border-radius:3px;overflow:hidden;background:#f5f5f5;margin-top:3px;}
+  .form-buttons .btn, .form-buttons .btn.secondary{flex:0 1 auto;white-space:nowrap;border:none;padding:6px 10px;background:#f5f5f5;cursor:pointer;font-size:13px;color:#333;margin:0;border-radius:0;min-width:40px}
+  .form-buttons .btn + .btn, .form-buttons .btn + .btn.secondary, .form-buttons .btn.secondary + .btn, .form-buttons .btn.secondary + .btn.secondary{border-left:1px solid rgba(0,0,0,0.08)}
+  .form-buttons .btn.active{background:#667eea;color:#fff}
+  .form-buttons .btn.secondary{background:#f5f5f5;color:#333}
+  .form-buttons .btn.secondary.active{background:#667eea;color:#fff}
+    .badge{font-size:11px;padding:4px 6px;border-radius:10px;background:#f1f3f8}
+    footer{padding:8px 12px;font-size:12px;color:#444}
+    /* 詳細検索パネル */
+    .adv-panel{background:#fff;padding:8px;border-radius:8px;border:1px solid #eee;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+    .adv-panel.open{display:block}
+    #toggle-advanced{width:40px;height:36px;border-radius:8px;background:#fff;border:1px solid #ddd;cursor:pointer}
+    #toggle-advanced:hover{background:#f5f8ff}
+    @media(min-width:700px){ .list{grid-template-columns:repeat(2,1fr)} }
+  /* suggestions dropdown for search-area inputs */
+  .suggestions{position:absolute;background:var(--card);border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.08);max-height:200px;overflow:auto;z-index:9998;padding:4px}
+  .suggestion-item{padding:6px 8px;border-radius:4px;cursor:pointer;font-size:14px}
+  .suggestion-item:hover,.suggestion-item.active{background:#eef}
+  /* ensure search-area inputs have relative positioning context if desired */
+  .search-area{position:relative}
