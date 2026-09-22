@@ -74,7 +74,7 @@
     .stat-value.down{color:rgb(81, 81, 254)}
     .stat-value.none{color:#000}
     /* モーダル */
-    .modal{position:fixed;left:0;top:0;width:93%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);padding:16px}
+    .modal{position:fixed;left:0;top:0;width:93%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);padding:16px;z-index:9000}
     .modal.open{display:flex}
     .modal .panel{position:relative;width:100%;max-width:760px;background:var(--card);border-radius:12px;padding:12px;height:70vh;max-height:70vh;overflow:auto}
     /* モーダル内タイトルの余白を小さくする */
