@@ -30,8 +30,6 @@
       #type-rows > div select:nth-of-type(2) { box-sizing:border-box; width:70px; min-width:70px; max-width:70px; flex: 0 0 20px }
       /* 技のテキストボックス幅を約10px縮める（セル幅から10px差し引く） */
       #move-rows > div input { box-sizing:border-box; flex: 0 0; width:120px; min-width:120px; max-width:120px; }
-    /* Persistent Storageの許可状況表示（控えめな見た目。デザインは後日調整予定） */
-    .storage-status{font-size:11px;color:#888;margin:2px 0 6px 2px}
     .list{display:grid;grid-template-columns:1fr;gap:5px}
     /* .card はスワイプ削除のための外枠（角丸のクリッピングと相対配置のみを担当） */
     .card{border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.06);position:relative;overflow:hidden}

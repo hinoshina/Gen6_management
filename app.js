@@ -149,7 +149,9 @@
       window.SUGGEST = window.SUGGEST || {};
       window.SUGGEST.species = Object.keys(DATA.species || {});
       window.SUGGEST.abilities = Array.from(new Set((DATA.instances||[]).map(i=>i.ability).filter(Boolean))).sort();
-      window.SUGGEST.moves = Array.from(new Set((DATA.instances||[]).flatMap(i=> (i.moves||[]) ))).filter(Boolean).sort();
+      // 技の候補は MOVES_DATA（技データ）のみから作る。
+      // 既存インスタンスの技欄にMOVES_DATAに無い技名が入っていても、候補には出さない。
+      window.SUGGEST.moves = Object.keys((typeof MOVES_DATA !== 'undefined' ? MOVES_DATA : {})).sort();
       window.SUGGEST.types = typesOrder.slice();
     }catch(e){ console.warn('ensureDatalists failed', e); }
   }
@@ -299,7 +301,7 @@
     try{
       const speciesList = (window.SUGGEST && window.SUGGEST.species) ? window.SUGGEST.species : Object.keys(DATA.species || {});
       const abilitiesList = (window.SUGGEST && window.SUGGEST.abilities) ? window.SUGGEST.abilities : Array.from(new Set((DATA.instances||[]).map(i=>i.ability).filter(Boolean))).sort();
-      const movesList = (window.SUGGEST && window.SUGGEST.moves) ? window.SUGGEST.moves : Array.from(new Set((DATA.instances||[]).flatMap(i=> (i.moves||[]) ))).filter(Boolean).sort();
+      const movesList = (window.SUGGEST && window.SUGGEST.moves) ? window.SUGGEST.moves : Object.keys((typeof MOVES_DATA !== 'undefined' ? MOVES_DATA : {})).sort();
       const typesList = (window.SUGGEST && window.SUGGEST.types) ? window.SUGGEST.types : typesOrder.slice();
       // attach to the two main advanced inputs
       const advName = document.getElementById('adv-name'); if(advName) attachSuggestionsToInput(advName, speciesList);
@@ -950,22 +952,21 @@
     return true;
   }
 
-  // 編集内容をIndexedDBへ書き込み、一覧側のメモリ上データにも反映する。
+  // 既存個体の編集内容をIndexedDBへ書き込み、一覧側のメモリ上データにも反映する。
   // _form（フォーム/メガの一時プレビュー）と _evRealMismatch（実数値の一時表示用マーカー）は
   // あくまでモーダル内の一時的な状態なので、DBには保存しない。
+  // 「編集完了」ボタンが押されたとき（finishEditing）にのみ呼び出す。
   function persistInstanceEdit(inst){
-    if(inst == null || typeof inst.id === 'undefined') return;
+    if(inst == null || typeof inst.id === 'undefined' || inst.id === null){
+      return Promise.reject(new Error('保存対象のidがありません'));
+    }
     const src = DATA.instances.find(x=>x.id===inst.id);
-    if(!src) return;
-    const persistable = Object.assign({}, inst);
-    delete persistable._form;
-    delete persistable._evRealMismatch;
+    if(!src) return Promise.reject(new Error('保存対象の個体が見つかりません'));
+    const persistable = stripTransientFields(inst);
     Object.assign(src, persistable);
     if(typeof src._form === 'undefined') src._form = null;
-    if(typeof Gen6DB !== 'undefined'){
-      Gen6DB.updateInstance(persistable).catch((err)=>{ console.error('個体データの保存に失敗しました', err); });
-    }
-    renderList();
+    if(typeof Gen6DB === 'undefined') return Promise.resolve();
+    return Gen6DB.updateInstance(persistable);
   }
 
   // モーダルロジック
@@ -978,15 +979,37 @@
   const m_item_prop = document.getElementById('m_item_prop');
   const m_level = document.getElementById('m_level');
   const formButtons = document.getElementById('formButtons');
-  document.getElementById('closeModal').addEventListener('click', ()=>{ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); });
   let currentInst = null;
-  // 編集モードのON/OFF（モーダルを開くたびにOFFへ戻す。DBへの保存はまだ行わない：まずは編集UI/ロジックのみ）
+  // 編集モードのON/OFF（モーダルを開くたびにOFFへ戻す）
   let modalEditMode = false;
+  // 編集モードに入った時点のスナップショット（×で閉じたときに戻す/変更の有無判定に使う）
+  let modalEditSnapshot = null;
+  // まだIndexedDBに保存されていない新規追加中の個体かどうか
+  let modalIsNewInstance = false;
   // track original values so modal-only changes can be reverted on close
   let modalSourceId = null;
   let modalOriginalSnapshot = null;
 
+  // _form/_evRealMismatch はあくまでモーダル内の一時的な表示状態なので、変更比較からは除外する
+  function stripTransientFields(inst){
+    const clean = Object.assign({}, inst);
+    delete clean._form;
+    delete clean._evRealMismatch;
+    return clean;
+  }
+
+  // 編集モードに入ってから（＝modalEditSnapshotを取ってから）何か変更されたかどうかを判定する
+  function hasUnsavedChanges(inst, snapshot){
+    if(!snapshot) return false;
+    return JSON.stringify(stripTransientFields(inst)) !== JSON.stringify(stripTransientFields(snapshot));
+  }
+
   function closeModalAction(){
+    // 編集モード中に未保存の変更がある場合は、破棄してよいか確認する
+    if(modalEditMode && currentInst && hasUnsavedChanges(currentInst, modalEditSnapshot)){
+      const confirmed = window.confirm('変更は破棄されますがよろしいですか');
+      if(!confirmed) return; // 「いいえ」: モーダルは閉じず、編集モードを続行する
+    }
     // revert any persisted changes to the source instance (defensive)
     if(modalSourceId && modalOriginalSnapshot){
       const src = DATA.instances.find(x=>x.id===modalSourceId);
@@ -999,6 +1022,9 @@
     // clear modal tracking
     modalSourceId = null;
     modalOriginalSnapshot = null;
+    modalEditMode = false;
+    modalEditSnapshot = null;
+    modalIsNewInstance = false;
     currentInst = null;
     renderList();
   }
@@ -1016,18 +1042,58 @@
       if(typeof inst.raised === 'undefined') inst.raised = 0;
     });
   }
-  function openModal(inst, startInEditMode){
-    // capture source id and snapshot of persistent fields
-    modalSourceId = inst.id;
-    const src = DATA.instances.find(x=>x.id===inst.id);
+  function openModal(inst, startInEditMode, isNewInstance){
+    // capture source id and snapshot of persistent fields（新規未保存の個体は id を持たない）
+    modalSourceId = (typeof inst.id !== 'undefined' && inst.id !== null) ? inst.id : null;
+    const src = (modalSourceId !== null) ? DATA.instances.find(x=>x.id===modalSourceId) : null;
     modalOriginalSnapshot = src ? { _form: src._form } : { _form: null };
     // work on a deep copy for modal preview only
     currentInst = JSON.parse(JSON.stringify(inst)); // コピー
     modalEditMode = !!startInEditMode; // 通常はOFFから始まる。追加直後はONで開始する
+    modalIsNewInstance = !!isNewInstance;
+    // 編集モードで開始する場合は、この時点の内容をスナップショットとして保持する
+    // （×で閉じる際の「未保存の変更があるか」判定と、破棄時に戻す先として使う）
+    modalEditSnapshot = modalEditMode ? JSON.parse(JSON.stringify(currentInst)) : null;
     renderModal(currentInst);
     modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
     // position close button so it overlaps the panel corner (not clipped)
     positionCloseButton();
+  }
+
+  // 「編集完了」ボタンが押されたときの確定処理。
+  // typedSpeciesName: 名前欄に現在入力中の値（blurが発火していなくても最新の入力値を検証するため明示的に受け取る）
+  async function finishEditing(inst, typedSpeciesName){
+    const typed = (typeof typedSpeciesName === 'string' ? typedSpeciesName : (inst.species || '')).trim();
+    if(!typed || !DATA.species[typed]){
+      alert('対応していないポケモン名が入力されています');
+      return; // 保存せず、編集モードのまま
+    }
+    if(typed !== inst.species){
+      commitSpeciesChange(inst, typed);
+    }
+
+    try{
+      if(modalIsNewInstance){
+        const persistable = stripTransientFields(inst);
+        const newId = await Gen6DB.addInstance(persistable);
+        inst.id = newId;
+        modalSourceId = newId;
+        const stored = Object.assign({}, persistable, { id: newId, _form: null });
+        DATA.instances.push(stored);
+        modalIsNewInstance = false;
+      } else {
+        await persistInstanceEdit(inst);
+      }
+    }catch(e){
+      console.error('個体データの保存に失敗しました', e);
+      alert('保存に失敗しました。もう一度お試しください。');
+      return; // 保存できなかった場合は編集モードを維持する
+    }
+
+    modalEditMode = false;
+    modalEditSnapshot = null;
+    renderList();
+    renderModal(inst);
   }
 
   function renderModal(inst){
@@ -1052,25 +1118,27 @@
       typesDiv.appendChild(type1El); typesDiv.appendChild(type2El);
       header.appendChild(typesDiv);
 
+      let nameInputRef = null; // 編集完了ボタン押下時に、確定前の最新の入力値を読むための参照
       if(modalEditMode){
-        // ポケモン名：入力（候補リスト付き）。確定は blur または候補クリックのタイミングで行う
+        // ポケモン名：入力（候補リスト付き）。名前欄はここでは仮確定のみ行い、
+        // 実際のDB保存は「編集完了」が押されたときにまとめて行う。
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
         nameInput.className = 'edit-text-input edit-name-input';
         nameInput.value = inst.species;
+        nameInput.placeholder = 'ポケモン名を入力';
         nameInput.addEventListener('keydown', (ev)=>{ if(ev.key === 'Enter'){ ev.preventDefault(); nameInput.blur(); } });
         nameInput.addEventListener('blur', ()=>{
-          const changed = commitSpeciesChange(inst, nameInput.value);
-          if(changed) persistInstanceEdit(inst);
+          commitSpeciesChange(inst, nameInput.value);
           renderModal(inst); // 確定できてもできなくても、実際の値に表示を揃えるため再描画する
         });
         header.appendChild(nameInput);
         const speciesList = (window.SUGGEST && window.SUGGEST.species) ? window.SUGGEST.species : Object.keys(DATA.species || {});
         attachSuggestionsToInput(nameInput, speciesList, (value)=>{
-          const changed = commitSpeciesChange(inst, value);
-          if(changed) persistInstanceEdit(inst);
+          commitSpeciesChange(inst, value);
           renderModal(inst);
         });
+        nameInputRef = nameInput;
       } else {
         const nameText = document.createElement('div'); nameText.className = 'm_name_text'; nameText.textContent = displayName;
         header.appendChild(nameText);
@@ -1079,10 +1147,17 @@
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'edit-toggle-btn' + (modalEditMode ? ' active' : '');
-      editBtn.textContent = modalEditMode ? '編集終了' : '編集';
+      editBtn.textContent = modalEditMode ? '編集完了' : '編集';
       editBtn.addEventListener('click', ()=>{
-        modalEditMode = !modalEditMode;
-        renderModal(inst);
+        if(!modalEditMode){
+          // 編集モードに入る：この時点の内容をスナップショットとして保持する
+          modalEditMode = true;
+          modalEditSnapshot = JSON.parse(JSON.stringify(inst));
+          renderModal(inst);
+          return;
+        }
+        // 編集完了：名前欄に入力中の値を検証したうえで保存する
+        finishEditing(inst, nameInputRef ? nameInputRef.value : inst.species);
       });
       header.appendChild(editBtn);
 
@@ -1118,7 +1193,7 @@
         abilityOptions.forEach(a=>{ const opt = document.createElement('option'); opt.value = a; opt.textContent = a; select.appendChild(opt); });
         if(!abilityOptions.includes(inst.ability)){ inst.ability = abilityOptions[0]; }
         select.value = inst.ability;
-        select.addEventListener('change', ()=>{ inst.ability = select.value; persistInstanceEdit(inst); renderModal(inst); });
+        select.addEventListener('change', ()=>{ inst.ability = select.value; renderModal(inst); });
         m_ability.appendChild(label);
         m_ability.appendChild(select);
       } else {
@@ -1133,12 +1208,12 @@
         const natureNames = Object.keys(DATA.natures).sort((a,b)=>a.localeCompare(b,'ja'));
         natureNames.forEach(n=>{ const opt = document.createElement('option'); opt.value = n; opt.textContent = n; select.appendChild(opt); });
         select.value = inst.nature;
-        select.addEventListener('change', ()=>{ inst.nature = select.value; inst._evRealMismatch = {}; persistInstanceEdit(inst); renderModal(inst); });
+        select.addEventListener('change', ()=>{ inst.nature = select.value; inst._evRealMismatch = {}; renderModal(inst); });
         const neutralBtn = document.createElement('button');
         neutralBtn.type = 'button';
         neutralBtn.className = 'neutral-btn' + (getNatureUpDown(inst.nature).up === null ? ' active' : '');
         neutralBtn.textContent = '無補正';
-        neutralBtn.addEventListener('click', ()=>{ setNeutralNature(inst); persistInstanceEdit(inst); renderModal(inst); });
+        neutralBtn.addEventListener('click', ()=>{ setNeutralNature(inst); renderModal(inst); });
         m_nature.appendChild(label);
         m_nature.appendChild(select);
         m_nature.appendChild(neutralBtn);
@@ -1154,7 +1229,7 @@
         input.type = 'text'; input.className = 'edit-text-input edit-item-input';
         input.value = inst.item || '';
         input.addEventListener('input', ()=>{ inst.item = input.value; });
-        input.addEventListener('blur', ()=>{ persistInstanceEdit(inst); });
+        // 道具はDB保存の即時反映を廃止（編集完了ボタンでまとめて保存する）
         m_item_prop.appendChild(label);
         m_item_prop.appendChild(input);
       } else {
@@ -1171,7 +1246,6 @@
       btn.addEventListener('click', ()=>{
         // toggle between 50 and 100 on the modal copy
         inst.level = (inst.level === 100) ? 50 : 100;
-        if(modalEditMode) persistInstanceEdit(inst);
         renderModal(inst);
       });
       m_level.innerHTML = '';
@@ -1332,9 +1406,9 @@
         if(k !== 'H'){
           const cellWrap = document.createElement('div'); cellWrap.className = 'nature-arrow-cell';
           const plusBtn = document.createElement('button'); plusBtn.type='button'; plusBtn.className = 'nature-arrow-btn' + (nd.up===k ? ' active-up' : ''); plusBtn.textContent = '▲';
-          plusBtn.addEventListener('click', ()=>{ toggleNatureStat(inst, k, 'plus'); persistInstanceEdit(inst); renderModal(inst); });
+          plusBtn.addEventListener('click', ()=>{ toggleNatureStat(inst, k, 'plus'); renderModal(inst); });
           const minusBtn = document.createElement('button'); minusBtn.type='button'; minusBtn.className = 'nature-arrow-btn' + (nd.down===k ? ' active-down' : ''); minusBtn.textContent = '▼';
-          minusBtn.addEventListener('click', ()=>{ toggleNatureStat(inst, k, 'minus'); persistInstanceEdit(inst); renderModal(inst); });
+          minusBtn.addEventListener('click', ()=>{ toggleNatureStat(inst, k, 'minus'); renderModal(inst); });
           cellWrap.appendChild(plusBtn); cellWrap.appendChild(minusBtn);
           td.appendChild(cellWrap);
         }
@@ -1361,23 +1435,22 @@
           if(!isNaN(v)) applyRealValueEdit(inst, k, v);
           refreshColumn(k);
         });
-        realInputs[k].addEventListener('change', ()=>{ persistInstanceEdit(inst); });
+        // 実数値の確定(change)時点でのDB保存は行わない（編集完了ボタンでまとめて保存する）
         ivInputs[k].addEventListener('input', ()=>{
           const v = parseInt(ivInputs[k].value, 10);
           if(!isNaN(v)) applyIvDirectEdit(inst, k, v);
           refreshColumn(k);
         });
-        ivInputs[k].addEventListener('change', ()=>{ persistInstanceEdit(inst); });
+        // 個体値の確定(change)時点でのDB保存は行わない（編集完了ボタンでまとめて保存する）
         evInputs[k].addEventListener('input', ()=>{
           const v = parseInt(evInputs[k].value, 10);
           if(!isNaN(v)) applyEvDirectEdit(inst, k, v);
           refreshColumn(k);
         });
-        evInputs[k].addEventListener('change', ()=>{ persistInstanceEdit(inst); });
+        // 努力値の確定(change)時点でのDB保存は行わない（編集完了ボタンでまとめて保存する）
         evToggleBtns[k].addEventListener('click', ()=>{
           toggleEvZeroMax(inst, k);
           refreshColumn(k);
-          persistInstanceEdit(inst);
         });
       });
     }
@@ -1401,15 +1474,15 @@
     } else {
       const movesGrid = document.createElement('div');
       movesGrid.style.display = 'grid'; movesGrid.style.gridTemplateColumns = '1fr 1fr'; movesGrid.style.gap = '4px'; movesGrid.style.marginTop = '8px';
-      const movesList = (window.SUGGEST && window.SUGGEST.moves) ? window.SUGGEST.moves : [];
+      const movesList = (window.SUGGEST && window.SUGGEST.moves) ? window.SUGGEST.moves : Object.keys((typeof MOVES_DATA !== 'undefined' ? MOVES_DATA : {})).sort();
       for(let i=0;i<4;i++){
         const moveInput = document.createElement('input');
         moveInput.type = 'text'; moveInput.className = 'edit-text-input';
         moveInput.value = inst.moves[i] || '';
         moveInput.addEventListener('input', ()=>{ inst.moves[i] = moveInput.value; });
-        moveInput.addEventListener('blur', ()=>{ persistInstanceEdit(inst); });
+        // 技欄もDB保存の即時反映を廃止（編集完了ボタンでまとめて保存する）
         movesGrid.appendChild(moveInput);
-        attachSuggestionsToInput(moveInput, movesList, (value)=>{ inst.moves[i] = value; moveInput.value = value; persistInstanceEdit(inst); });
+        attachSuggestionsToInput(moveInput, movesList, (value)=>{ inst.moves[i] = value; moveInput.value = value; });
       }
       m_more.appendChild(movesGrid);
 
@@ -1418,7 +1491,7 @@
       memoTextarea.style.marginTop = '8px';
       memoTextarea.value = inst.memo || '';
       memoTextarea.addEventListener('input', ()=>{ inst.memo = memoTextarea.value; });
-      memoTextarea.addEventListener('blur', ()=>{ persistInstanceEdit(inst); });
+      // メモもDB保存の即時反映を廃止（編集完了ボタンでまとめて保存する）
       m_more.appendChild(memoTextarea);
     }
 
@@ -1459,35 +1532,26 @@
   if(advSortDirBtn){ if(!advSortDirBtn.dataset.dir) advSortDirBtn.dataset.dir='desc'; advSortDirBtn.addEventListener('click', ()=>{ advSortDirBtn.dataset.dir = advSortDirBtn.dataset.dir === 'asc' ? 'desc' : 'asc'; advSortDirBtn.textContent = advSortDirBtn.dataset.dir === 'asc' ? '↑' : '↓'; renderList(); }); }
   if(resetBtn) resetBtn.addEventListener('click', ()=>{ if(qEl) qEl.value=''; if(filterTypeEl) filterTypeEl.value=''; if(advSortFieldEl) advSortFieldEl.value='dex'; if(advSortDirBtn){ advSortDirBtn.dataset.dir='desc'; advSortDirBtn.textContent='↓'; } renderList(); });
 
-  // 「追加」ボタン: 既定値の新しい個体をIndexedDBに追加し、編集モードのまま即座にモーダルを開く
+  // 「追加」ボタン: 空欄のポケモン名で新しい個体を編集モードのまま開く。
+  // この時点ではIndexedDBには何も保存しない（一覧にも表示しない）。
+  // 「編集完了」で有効なポケモン名が確定して初めて保存され、一覧に表示される。
   const addInstanceBtn = document.getElementById('add-instance-btn');
   if(addInstanceBtn){
-    addInstanceBtn.addEventListener('click', async ()=>{
-      try{
-        const defaultSpeciesName = Object.keys(DATA.species)[0];
-        const defaultSp = DATA.species[defaultSpeciesName];
-        const newInstanceData = {
-          species: defaultSpeciesName,
-          level: 50,
-          raised: 0,
-          nature: NEUTRAL_NATURE_NAME,
-          ability: (defaultSp && defaultSp.abilities && defaultSp.abilities[0]) ? defaultSp.abilities[0] : '',
-          item: '',
-          ev: {H:0,A:0,B:0,C:0,D:0,S:0},
-          iv: {H:31,A:31,B:31,C:31,D:31,S:31},
-          moves: ['','','',''],
-          memo: '',
-          tags: ''
-        };
-        const newId = await Gen6DB.addInstance(newInstanceData);
-        const newInstance = Object.assign({ id: newId, _form: null }, newInstanceData);
-        DATA.instances.push(newInstance);
-        renderList();
-        openModal(newInstance, true); // 編集ボタンを押した時と同じ編集UIですぐに開く
-      }catch(e){
-        console.error('個体の追加に失敗しました', e);
-        alert('個体の追加に失敗しました。もう一度お試しください。');
-      }
+    addInstanceBtn.addEventListener('click', ()=>{
+      const newInstanceData = {
+        species: '', // ポケモン名は空欄からスタート
+        level: 50,
+        raised: 0,
+        nature: NEUTRAL_NATURE_NAME,
+        ability: '',
+        item: '',
+        ev: {H:0,A:0,B:0,C:0,D:0,S:0},
+        iv: {H:31,A:31,B:31,C:31,D:31,S:31},
+        moves: ['','','',''],
+        memo: '',
+        tags: ''
+      };
+      openModal(newInstanceData, true, true); // 編集モードで開始、かつ「新規未保存」として扱う
     });
   }
 
@@ -1540,20 +1604,6 @@
     });
   }
 
-  // Persistent Storageの許可状況を、控えめなテキストで画面に表示する。
-  // 許可されていなくても、あくまで表示のみ（アプリの動作自体は変わらない）。
-  function updateStorageStatusUI(status){
-    const el = document.getElementById('storage-status');
-    if(!el) return;
-    if(status === true){
-      el.textContent = '💾 データの永続化: 有効（ブラウザに保存領域の保護が許可されています）';
-    } else if(status === false){
-      el.textContent = '💾 データの永続化: 未許可（動作に支障はありませんが、端末の空き容量が少ない場合に削除されることがあります）';
-    } else {
-      el.textContent = '💾 データの永続化: このブラウザは非対応です（動作には影響ありません）';
-    }
-  }
-
   // 初回表示: IndexedDB（Gen6DB）から instances を読み込んでから初期描画を行う。
   // オンライン/オフラインで処理を分岐させることはなく、常にこの経路（IndexedDB）からデータを取得する。
   async function initApp(){
@@ -1573,17 +1623,14 @@
     renderList();
 
     // Persistent Storageの要求は、IndexedDBの初期化とは独立して行う。
-    // ここで失敗・拒否されてもアプリの動作には一切影響しない。
+    // 許可状況は画面には表示しない（要求自体は行うが、結果の表示処理は持たない）。
+    // 失敗・拒否されてもアプリの動作には一切影響しない。
     try{
       if(typeof Gen6DB !== 'undefined' && Gen6DB.requestPersistentStorage){
-        const persisted = await Gen6DB.requestPersistentStorage();
-        updateStorageStatusUI(persisted);
-      } else {
-        updateStorageStatusUI(null);
+        await Gen6DB.requestPersistentStorage();
       }
     }catch(e){
       console.warn('Persistent Storageの要求中にエラーが発生しました（アプリの動作には影響ありません）', e);
-      updateStorageStatusUI(null);
     }
   }
   initApp();
