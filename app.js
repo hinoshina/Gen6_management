@@ -114,12 +114,12 @@
         advPanel.style.display = 'none';
         advPanel.setAttribute('aria-hidden','true');
         toggleAdvBtn.setAttribute('aria-expanded','false');
-        toggleAdvBtn.textContent = '＋';
+        toggleAdvBtn.textContent = '＋絞り込み';
       } else {
         advPanel.style.display = 'block';
         advPanel.setAttribute('aria-hidden','false');
         toggleAdvBtn.setAttribute('aria-expanded','true');
-        toggleAdvBtn.textContent = '−';
+        toggleAdvBtn.textContent = '－絞り込み';
       }
     });
   }
@@ -713,9 +713,12 @@
       if(formBtns[0].classList.contains('active')) formState = 'shield';
       else if(formBtns[1].classList.contains('active')) formState = 'blade';
     }
-    // メガボタン: アクティブなら true（メガ）、非アクティブなら false（通常）
-    const megaBtn = document.getElementById('adv-mega-toggle');
-    const isMega = megaBtn ? megaBtn.classList.contains('active') : false;
+    // 通常/メガボタン（盾/剣と同じ2ボタン方式）: 2番目（メガ）がアクティブならtrue
+    const megaBtns = document.querySelectorAll('#adv-mega-buttons .btn');
+    let isMega = false;
+    if(megaBtns.length >= 2){
+      isMega = megaBtns[1].classList.contains('active');
+    }
     return { form: formState, isMega };
   }
 
@@ -1529,8 +1532,35 @@
   if(qEl) qEl.addEventListener('input', renderList);
   if(advSortFieldEl) advSortFieldEl.addEventListener('change', renderList);
   if(filterTypeEl) filterTypeEl.addEventListener('change', renderList);
-  if(advSortDirBtn){ if(!advSortDirBtn.dataset.dir) advSortDirBtn.dataset.dir='desc'; advSortDirBtn.addEventListener('click', ()=>{ advSortDirBtn.dataset.dir = advSortDirBtn.dataset.dir === 'asc' ? 'desc' : 'asc'; advSortDirBtn.textContent = advSortDirBtn.dataset.dir === 'asc' ? '↑' : '↓'; renderList(); }); }
-  if(resetBtn) resetBtn.addEventListener('click', ()=>{ if(qEl) qEl.value=''; if(filterTypeEl) filterTypeEl.value=''; if(advSortFieldEl) advSortFieldEl.value='dex'; if(advSortDirBtn){ advSortDirBtn.dataset.dir='desc'; advSortDirBtn.textContent='↓'; } renderList(); });
+  if(advSortDirBtn){ if(!advSortDirBtn.dataset.dir) advSortDirBtn.dataset.dir='desc'; advSortDirBtn.addEventListener('click', ()=>{ advSortDirBtn.dataset.dir = advSortDirBtn.dataset.dir === 'asc' ? 'desc' : 'asc'; advSortDirBtn.textContent = advSortDirBtn.dataset.dir === 'asc' ? '昇順' : '降順'; renderList(); }); }
+
+  // 詳細検索パネルの中身を初期状態（一般と準伝のみチェック、その他の絞り込み条件は空）に戻す
+  function resetAdvancedSearchPanel(){
+    const advName = document.getElementById('adv-name'); if(advName) advName.value = '';
+    const advAbility = document.getElementById('adv-ability'); if(advAbility) advAbility.value = '';
+    const advMemo = document.getElementById('adv-memo'); if(advMemo) advMemo.value = '';
+    const advMegaSel = document.getElementById('adv-mega'); if(advMegaSel) advMegaSel.value = '-';
+    const typeAnd = document.querySelector('input[name="type-mode"][value="AND"]'); if(typeAnd) typeAnd.checked = true;
+    const moveAnd = document.querySelector('input[name="move-mode"][value="AND"]'); if(moveAnd) moveAnd.checked = true;
+    const typeClearBtn = document.getElementById('type-clear-all'); if(typeClearBtn) typeClearBtn.click();
+    const moveClearBtn = document.getElementById('move-clear-all'); if(moveClearBtn) moveClearBtn.click();
+    const catNormal = document.getElementById('cat-normal'); if(catNormal) catNormal.checked = true;
+    const catLegend = document.getElementById('cat-legend'); if(catLegend) catLegend.checked = false;
+    const catUb = document.getElementById('cat-ub'); if(catUb) catUb.checked = true;
+    const catMyth = document.getElementById('cat-myth'); if(catMyth) catMyth.checked = false;
+    const catRaised = document.getElementById('cat-raised'); if(catRaised) catRaised.checked = false;
+    const catUnraised = document.getElementById('cat-unraised'); if(catUnraised) catUnraised.checked = false;
+  }
+
+  // リセットボタン: 検索欄のクリア、絞り込みパネルの初期化、ソートを図鑑番号の昇順に戻す
+  if(resetBtn) resetBtn.addEventListener('click', ()=>{
+    if(qEl) qEl.value='';
+    if(filterTypeEl) filterTypeEl.value='';
+    resetAdvancedSearchPanel();
+    if(advSortFieldEl) advSortFieldEl.value='dex';
+    if(advSortDirBtn){ advSortDirBtn.dataset.dir='asc'; advSortDirBtn.textContent='昇順'; }
+    renderList();
+  });
 
   // 「追加」ボタン: 空欄のポケモン名で新しい個体を編集モードのまま開く。
   // この時点ではIndexedDBには何も保存しない（一覧にも表示しない）。
@@ -1575,13 +1605,16 @@
     });
   }
 
-  // 詳細検索エリア：メガトグルボタンのイベント設定
-  const advMegaToggle = document.getElementById('adv-mega-toggle');
-  if(advMegaToggle){
-    advMegaToggle.addEventListener('click', ()=>{
-      const isActive = advMegaToggle.classList.toggle('active');
-      advMegaToggle.textContent = isActive ? 'メガ' : '通常';
-      renderList();
+  // ヘッダー：通常/メガボタンのイベント設定（盾/剣と同じ2ボタン切り替え方式）
+  const advMegaButtons = document.getElementById('adv-mega-buttons');
+  if(advMegaButtons){
+    const megaBtns = advMegaButtons.querySelectorAll('.btn');
+    megaBtns.forEach((btn)=>{
+      btn.addEventListener('click', ()=>{
+        megaBtns.forEach(b=> b.classList.remove('active'));
+        btn.classList.add('active');
+        renderList();
+      });
     });
   }
 

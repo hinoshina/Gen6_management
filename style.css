@@ -11,10 +11,20 @@
     .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
     .controls input[type=text], .controls select{flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;background:#fff}
     .controls .small{flex:0 0 140px}
-    #reset{flex:0 0 70px;min-width:70px;margin-right: 30px;}
-    #add-instance-btn{flex:0 0 60px;min-width:60px;width:60px}
-    /* 並び替えセレクトと矢印ボタンの高さを統一 */
-    #adv-sort-field, #adv-sort-dir{height:34px;padding:4px 8px;box-sizing:border-box}
+    /* ヘッダー操作部：2行4列のグリッド。gapを揃えることで各行・各列の開始/終了位置を統一する */
+    .controls-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%}
+    .controls-grid .grid-cell{width:100%;min-width:0;box-sizing:border-box;margin:0}
+    .controls-grid input[type=text],
+    .controls-grid select{width:100%;height:38px;box-sizing:border-box;padding:0 8px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:13px}
+    .controls-grid .ctrl-btn{width:100%;height:38px;box-sizing:border-box;padding:0 4px;border-radius:8px;border:1px solid #ddd;background:#f1f1f1;font-size:13px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .controls-grid .ctrl-btn:active{background:#e6e6e6}
+    /* グリッド内の盾/剣・通常/メガは、グリッドの1セル幅いっぱいに広がるようにする */
+    .controls-grid .form-buttons{display:flex;width:100%;height:38px;margin-top:0;box-sizing:border-box}
+    .controls-grid .form-buttons .btn{flex:1;display:flex;align-items:center;justify-content:center;min-width:0}
+    /* ソート：並び替え基準(select)と昇順/降順(button)を1つの部品としてくっつけて見せる */
+    .sort-group{display:flex;align-items:stretch;width:100%;height:38px;border:1px solid #666;border-radius:8px;overflow:hidden;background:#f5f5f5;box-sizing:border-box}
+    .sort-group select{flex:1;min-width:0;height:100%;border:none;background:#f5f5f5;padding:0 4px;font-size:13px;box-sizing:border-box}
+    .sort-group button{flex:0 0 auto;height:100%;border:none;border-left:1px solid rgba(0,0,0,0.08);background:#f5f5f5;padding:0 8px;font-size:12px;cursor:pointer;white-space:nowrap;box-sizing:border-box}
     /* タイプと技のクリアボタン（AND/ORの右）の幅を固定 */
     #type-clear-all, #move-clear-all{flex:0 0 70px;min-width:70px;width:70px;padding:4px;box-sizing:border-box}
     /* 小さいクリアボタン（タイプ / 技 行の ×）幅を固定

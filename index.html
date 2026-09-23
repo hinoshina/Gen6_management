@@ -21,12 +21,43 @@
   </header> -->
   <div class="container">
     <div class="controls">
-      <!-- top row: search input + toggle, advanced panel placeholder, then sort/reset -->
-      <input id="q" type="text" placeholder="検索: 名前・技・持ち物・タグ を含む" onfocus="this.select()"/>
-      <button id="toggle-advanced" class="small" aria-expanded="false" title="詳細検索を開く">＋</button>
-      <button id="add-instance-btn" class="small" title="新しい個体を追加">追加</button>
+      <!-- ヘッダー操作部：2行4列のグリッド。各行・各列の開始/終了位置を揃える -->
+      <div class="controls-grid">
+        <!-- 1行1列: 検索 -->
+        <input id="q" type="text" placeholder="検索" class="grid-cell" onfocus="this.select()"/>
+        <!-- 1行2列: 絞り込み（開閉でラベルが ＋絞り込み / －絞り込み に変わる） -->
+        <button id="toggle-advanced" class="grid-cell ctrl-btn" aria-expanded="false" title="詳細検索を開く">＋絞り込み</button>
+        <!-- 1行3列: 通常/メガ（盾/剣と同じ見た目の切り替えボタン） -->
+        <div class="form-buttons grid-cell" id="adv-mega-buttons">
+          <button type="button" class="btn active" data-mega="off">通常</button>
+          <button type="button" class="btn secondary" data-mega="on">メガ</button>
+        </div>
+        <!-- 1行4列: 新規作成 -->
+        <button id="add-instance-btn" class="grid-cell ctrl-btn" title="新しい個体を追加">新規作成</button>
 
-      <!-- 詳細パネル（初期は非表示）。DOM 上はトグル直後に置き、ソート/リセットはその後に続く -->
+        <!-- 2行1列: ソート（並び替え基準＋昇順/降順を一体化） -->
+        <div class="sort-group grid-cell">
+          <select id="adv-sort-field">
+            <option value="S">S</option>
+            <option value="A">A</option>
+            <option value="C">C</option>
+            <option value="AorC">AorC</option>
+            <option value="dex">図鑑番号</option>
+          </select>
+          <button id="adv-sort-dir" type="button">降順</button>
+        </div>
+        <!-- 2行2列: リセット -->
+        <button id="reset" class="grid-cell ctrl-btn">リセット</button>
+        <!-- 2行3列: 盾/剣（変更なし） -->
+        <div class="form-buttons grid-cell" id="adv-form-buttons">
+          <button type="button" class="btn active">盾</button>
+          <button type="button" class="btn secondary">剣</button>
+        </div>
+        <!-- 2行4列: 入出力（処理は後日実装） -->
+        <button id="io-btn" class="grid-cell ctrl-btn" title="入出力（今後実装予定）">入出力</button>
+      </div>
+
+      <!-- 詳細パネル（初期は非表示）。グリッドの下に全幅で展開する -->
       <div id="advanced-search" class="adv-panel" aria-hidden="true" style="display:none;margin:8px 0; width:100%">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div>
@@ -91,28 +122,6 @@
           </div>
         </div>
       </div>
-
-      <!-- adv-sort-field moved here (controls) -->
-      <div style="display:flex;gap:8px;align-items:center">
-        <div>
-          <select id="adv-sort-field" class="small">
-            <option value="S">S</option>
-            <option value="A">A</option>
-            <option value="C">C</option>
-            <option value="AorC">AorC</option>
-            <option value="dex">図鑑番号</option>
-          </select>
-        </div>
-        <div>
-          <button id="adv-sort-dir" class="small">↓</button>
-        </div>
-      </div>
-      <button id="reset" class="small">リセット</button>
-      <div class="form-buttons" id="adv-form-buttons">
-        <button class="btn active">盾</button>
-        <button class="btn secondary">剣</button>
-      </div>
-      <button id="adv-mega-toggle" class="level-btn">通常</button>
     </div>
     <div id="list" class="list"></div>
   </div>
