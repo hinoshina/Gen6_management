@@ -54,6 +54,7 @@
   .card-left{flex:7;display:flex;flex-direction:column}
   .card-right{flex:2;display:flex;flex-direction:column;align-items:flex-end}
   .types-stack{display:flex;flex-direction:column;gap:2px;font-weight:700;font-size: 10px;}
+  .types-stack div{padding:1px 4px;border-radius:3px;text-align:center;box-sizing:border-box}
   /* types-stack の横幅を固定して名前位置が動かないようにする */
   .types-stack{flex:0 0 64px;min-width:64px}
   .moves-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
@@ -108,7 +109,7 @@
   .m_name_text{flex:1;min-width:calc(9ch + 24px);font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     /* タイプは左に縦並び、固定幅。名前は右側に表示する */
     .m_types{flex:0 0 88px;display:flex;flex-direction:column;justify-content:center;gap:4px;align-items:flex-start}
-    .m_type{width:100%;text-align:left;font-weight:700;font-size:12px}
+    .m_type{width:100%;text-align:left;font-weight:700;font-size:12px;padding:1px 4px;border-radius:3px;box-sizing:border-box}
 
   /* ===== 編集モード用スタイル ===== */
   /* 名前行右端の編集ボタン */

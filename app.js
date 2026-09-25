@@ -35,6 +35,25 @@
   // 種族値キー(H/A/B/C/D/S) <-> baseStatsキー(hp/atk/def/spa/spd/spe) の対応
   const statKeyMap = {H:'hp',A:'atk',B:'def',C:'spa',D:'spd',S:'spe'};
 
+  // タイプ名に対応する背景色を要素に適用する（TYPE_COLORSに無いタイプは何もしない＝従来どおりの見た目のまま）。
+  // 背景色を設定した場合は文字色を白にする。
+  function applyTypeColorStyle(el, typeName){
+    const hex = (typeof TYPE_COLORS !== 'undefined') ? TYPE_COLORS[typeName] : null;
+    if(hex){
+      el.style.backgroundColor = '#' + hex;
+      el.style.color = '#fff';
+    }
+  }
+
+  // 技名に対応する（MOVES_DATA上の）タイプの背景色を要素に適用する。
+  // MOVES_DATAに存在しない技名（空欄や未登録の技）には何もしない。
+  function applyMoveColorStyle(el, moveName){
+    const moveInfo = (typeof MOVES_DATA !== 'undefined') ? MOVES_DATA[moveName] : null;
+    if(moveInfo && moveInfo.type){
+      applyTypeColorStyle(el, moveInfo.type);
+    }
+  }
+
   // インスタンスの道具からメガ関連グループを判定（X専用/Y専用/汎用メガ/該当なし）
   function computeItemGroup(inst){
     const itemRaw = ((inst && inst.item) || '').toLowerCase();
@@ -544,7 +563,7 @@
   const resolvedEntryForCard = DATA.species[resolvedFormNameForCard] || sp;
   let displayTypes = resolvedEntryForCard.types || sp?.types || [];
   const typesStack = document.createElement('div'); typesStack.className = 'types-stack';
-  displayTypes.forEach(t=>{ const d = document.createElement('div'); d.textContent = t; typesStack.appendChild(d); });
+  displayTypes.forEach(t=>{ const d = document.createElement('div'); d.textContent = t; applyTypeColorStyle(d, t); typesStack.appendChild(d); });
   // 固定幅のタイプ領域の右に名前領域を置く（名前位置がタイプの長さで動かない）
   const nameEl = document.createElement('div'); nameEl.className = 'card-name'; nameEl.style.fontSize='16px'; nameEl.textContent = inst.species;
   const headerRow = document.createElement('div'); headerRow.style.display = 'flex'; headerRow.style.alignItems = 'center'; headerRow.style.gap = '8px';
@@ -572,6 +591,7 @@
       for(let i=0;i<4;i++){
         const mv = inst.moves[i] || '';
         const mvEl = document.createElement('div'); mvEl.className='move'; mvEl.textContent = mv;
+        applyMoveColorStyle(mvEl, mv);
         if(i%2===0) leftMovesCol.appendChild(mvEl); else rightMovesCol.appendChild(mvEl);
       }
 
@@ -1043,6 +1063,9 @@
       if(typeof inst._form === 'undefined') inst._form = null;
       // raised flag: 0 = 未育成, 1 = 育成済み
       if(typeof inst.raised === 'undefined') inst.raised = 0;
+      // 性別。"-"（不明/なし）"♂"「♀」のいずれかを想定するが、今のところ値のチェックはしない。
+      // GUIでの編集は未対応（後日整備予定）。既存データに無ければ既定値"-"を補う。
+      if(typeof inst.gender === 'undefined') inst.gender = '-';
     });
   }
   function openModal(inst, startInEditMode, isNewInstance){
@@ -1116,8 +1139,8 @@
       m_name.innerHTML = '';
       const header = document.createElement('div'); header.className = 'm_header';
       const typesDiv = document.createElement('div'); typesDiv.className = 'm_types';
-      const type1El = document.createElement('div'); type1El.className = 'm_type'; type1El.textContent = t1;
-      const type2El = document.createElement('div'); type2El.className = 'm_type'; type2El.textContent = t2;
+      const type1El = document.createElement('div'); type1El.className = 'm_type'; type1El.textContent = t1; applyTypeColorStyle(type1El, t1);
+      const type2El = document.createElement('div'); type2El.className = 'm_type'; type2El.textContent = t2; applyTypeColorStyle(type2El, t2);
       typesDiv.appendChild(type1El); typesDiv.appendChild(type2El);
       header.appendChild(typesDiv);
 
@@ -1468,6 +1491,7 @@
       movesGrid.style.display = 'grid'; movesGrid.style.gridTemplateColumns = '1fr 1fr'; movesGrid.style.gap = '4px'; movesGrid.style.marginTop = '8px';
       for(let i=0;i<4;i++){
         const moveBox = document.createElement('div'); moveBox.className = 'modal-move'; moveBox.textContent = inst.moves[i] || '';
+        applyMoveColorStyle(moveBox, inst.moves[i] || '');
         movesGrid.appendChild(moveBox);
       }
       m_more.appendChild(movesGrid);
@@ -1571,6 +1595,7 @@
       const newInstanceData = {
         species: '', // ポケモン名は空欄からスタート
         level: 50,
+        gender: '-', // 性別。"-"/"♂"/"♀" を想定（今のところ値のチェックはしない。GUI編集は後日対応）
         raised: 0,
         nature: NEUTRAL_NATURE_NAME,
         ability: '',
