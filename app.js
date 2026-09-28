@@ -998,10 +998,14 @@
   const m_stats = document.getElementById('m_stats');
   const m_more = document.getElementById('m_more');
   const m_ability = document.getElementById('m_ability');
+  const m_gender = document.getElementById('m_gender');
   const m_nature = document.getElementById('m_nature');
   const m_item_prop = document.getElementById('m_item_prop');
   const m_level = document.getElementById('m_level');
+  const m_raised_checkbox = document.getElementById('m_raised_checkbox');
+  const m_shiny_checkbox = document.getElementById('m_shiny_checkbox');
   const formButtons = document.getElementById('formButtons');
+  const editModalBtn = document.getElementById('editModalBtn'); // モーダルの枠外に配置された編集ボタン
   let currentInst = null;
   // 編集モードのON/OFF（モーダルを開くたびにOFFへ戻す）
   let modalEditMode = false;
@@ -1012,6 +1016,8 @@
   // track original values so modal-only changes can be reverted on close
   let modalSourceId = null;
   let modalOriginalSnapshot = null;
+  // 編集モード中の名前入力欄への参照（枠外の編集ボタンから「確定直前の入力値」を読むために保持する）
+  let modalNameInputRef = null;
 
   // _form/_evRealMismatch はあくまでモーダル内の一時的な表示状態なので、変更比較からは除外する
   function stripTransientFields(inst){
@@ -1054,6 +1060,21 @@
   document.getElementById('closeModal').addEventListener('click', closeModalAction);
   // clicking outside the panel (on backdrop) should also close the modal
   modal.addEventListener('click', (ev)=>{ if(ev.target === modal) closeModalAction(); });
+  // モーダル枠外の編集ボタン（常時1つのボタンを使い回すため、リスナーもここで一度だけ登録する）
+  if(editModalBtn){
+    editModalBtn.addEventListener('click', ()=>{
+      if(!currentInst) return;
+      if(!modalEditMode){
+        // 編集モードに入る：この時点の内容をスナップショットとして保持する
+        modalEditMode = true;
+        modalEditSnapshot = JSON.parse(JSON.stringify(currentInst));
+        renderModal(currentInst);
+        return;
+      }
+      // 編集完了：名前欄に入力中の値を検証したうえで保存する
+      finishEditing(currentInst, modalNameInputRef ? modalNameInputRef.value : currentInst.species);
+    });
+  }
   // インスタンスの実行時デフォルト値を設定する（in-memory）。
   // IDはIndexedDBの自動採番により常に一意な数値が入っているため、
   // 以前のようなID重複チェック・自動生成は不要になった。
@@ -1066,6 +1087,8 @@
       // 性別。"-"（不明/なし）"♂"「♀」のいずれかを想定するが、今のところ値のチェックはしない。
       // GUIでの編集は未対応（後日整備予定）。既存データに無ければ既定値"-"を補う。
       if(typeof inst.gender === 'undefined') inst.gender = '-';
+      // 色違いフラグ: 0 = 通常, 1 = 色違い。既存データに無ければ既定値0を補う。
+      if(typeof inst.shiny === 'undefined') inst.shiny = 0;
     });
   }
   function openModal(inst, startInEditMode, isNewInstance){
@@ -1124,7 +1147,7 @@
 
   function renderModal(inst){
     const sp = getSpecies(inst.species);
-    // ヘッダ: フォルムに応じた表示名とタイプ、および編集切替ボタンを表示
+    // ヘッダ: フォルムに応じた表示名とタイプを表示（編集ボタンはモーダル枠外の editModalBtn が担う）
     (function renderHeaderNameAndTypes(){
       const sp = getSpecies(inst.species);
       // 現在選択中のフォーム名（未設定なら inst.species そのもの＝通常/盾フォーム）
@@ -1144,7 +1167,7 @@
       typesDiv.appendChild(type1El); typesDiv.appendChild(type2El);
       header.appendChild(typesDiv);
 
-      let nameInputRef = null; // 編集完了ボタン押下時に、確定前の最新の入力値を読むための参照
+      modalNameInputRef = null; // 編集完了ボタン押下時に、確定前の最新の入力値を読むための参照
       if(modalEditMode){
         // ポケモン名：入力（候補リスト付き）。名前欄はここでは仮確定のみ行い、
         // 実際のDB保存は「編集完了」が押されたときにまとめて行う。
@@ -1164,31 +1187,20 @@
           commitSpeciesChange(inst, value);
           renderModal(inst);
         });
-        nameInputRef = nameInput;
+        modalNameInputRef = nameInput;
       } else {
         const nameText = document.createElement('div'); nameText.className = 'm_name_text'; nameText.textContent = displayName;
         header.appendChild(nameText);
       }
 
-      const editBtn = document.createElement('button');
-      editBtn.type = 'button';
-      editBtn.className = 'edit-toggle-btn' + (modalEditMode ? ' active' : '');
-      editBtn.textContent = modalEditMode ? '編集完了' : '編集';
-      editBtn.addEventListener('click', ()=>{
-        if(!modalEditMode){
-          // 編集モードに入る：この時点の内容をスナップショットとして保持する
-          modalEditMode = true;
-          modalEditSnapshot = JSON.parse(JSON.stringify(inst));
-          renderModal(inst);
-          return;
-        }
-        // 編集完了：名前欄に入力中の値を検証したうえで保存する
-        finishEditing(inst, nameInputRef ? nameInputRef.value : inst.species);
-      });
-      header.appendChild(editBtn);
-
       m_name.appendChild(header);
     })();
+
+    // 編集ボタン（モーダル枠外）の見た目を現在の状態に合わせる
+    if(editModalBtn){
+      editModalBtn.textContent = modalEditMode ? '編集完了' : '編集';
+      editModalBtn.classList.toggle('active', modalEditMode);
+    }
 
     // リセット＆準備
     m_stats.innerHTML = '';
@@ -1197,9 +1209,10 @@
     if(m_ability) m_ability.innerHTML = '';
     if(m_nature) m_nature.innerHTML = '';
     if(m_item_prop) m_item_prop.innerHTML = '';
+    if(m_gender) m_gender.innerHTML = '';
     if(m_level) m_level.innerHTML = '';
 
-    // 特性 / 性格 / 道具 を縦に並べる（メガ時は能力を切り替え）
+    // 特性 / 道具 / 性格 を縦に並べる（メガ時は能力を切り替え）。表示順は 特性→道具→性格。
     // メガ時の特性取得
     const resolvedFormNameForAbility = inst._form || inst.species;
     const resolvedEntryForAbility = DATA.species[resolvedFormNameForAbility];
@@ -1227,6 +1240,21 @@
       }
     }
 
+    if(m_item_prop){
+      if(modalEditMode){
+        const label = document.createElement('span'); label.textContent = '道具: ';
+        const input = document.createElement('input');
+        input.type = 'text'; input.className = 'edit-text-input edit-item-input';
+        input.value = inst.item || '';
+        input.addEventListener('input', ()=>{ inst.item = input.value; });
+        // 道具はDB保存の即時反映を廃止（編集完了ボタンでまとめて保存する）
+        m_item_prop.appendChild(label);
+        m_item_prop.appendChild(input);
+      } else {
+        m_item_prop.textContent = `道具: ${inst.item || ''}`;
+      }
+    }
+
     if(m_nature){
       if(modalEditMode){
         const label = document.createElement('span'); label.textContent = '性格: ';
@@ -1248,34 +1276,35 @@
       }
     }
 
-    if(m_item_prop){
-      if(modalEditMode){
-        const label = document.createElement('span'); label.textContent = '道具: ';
-        const input = document.createElement('input');
-        input.type = 'text'; input.className = 'edit-text-input edit-item-input';
-        input.value = inst.item || '';
-        input.addEventListener('input', ()=>{ inst.item = input.value; });
-        // 道具はDB保存の即時反映を廃止（編集完了ボタンでまとめて保存する）
-        m_item_prop.appendChild(label);
-        m_item_prop.appendChild(input);
-      } else {
-        m_item_prop.textContent = `道具: ${inst.item || ''}`;
-      }
+    // 性別（今のところ表示のみ。編集機能は後日対応）
+    if(m_gender){
+      m_gender.textContent = `性別: ${inst.gender || '-'}`;
+    }
+
+    // 育成済み / 色違い チェックボックス（0/1を反映するだけの表示。切り替えは後日、編集モードで対応予定）
+    if(m_raised_checkbox){
+      m_raised_checkbox.checked = Number(inst.raised) === 1;
+    }
+    if(m_shiny_checkbox){
+      m_shiny_checkbox.checked = Number(inst.shiny) === 1;
     }
 
     if(m_level){
-      // レベル切替ボタン（50 / 100） — 初期は inst.level
-      const lvl = inst.level || 50;
-      const btn = document.createElement('button');
-      btn.className = 'level-btn' + (lvl===100 ? ' active' : '');
-      btn.textContent = `Lv.${lvl}`;
-      btn.addEventListener('click', ()=>{
-        // toggle between 50 and 100 on the modal copy
-        inst.level = (inst.level === 100) ? 50 : 100;
-        renderModal(inst);
-      });
+      // レベル選択ボタン（レベル50 / レベル100）— フォルムボタンと同じ見た目の2択方式
       m_level.innerHTML = '';
-      m_level.appendChild(btn);
+      const lvl = inst.level || 50;
+      const btn50 = document.createElement('button');
+      btn50.type = 'button';
+      btn50.className = 'btn' + (lvl !== 100 ? ' active' : ' secondary');
+      btn50.textContent = 'レベル50';
+      btn50.addEventListener('click', ()=>{ inst.level = 50; renderModal(inst); });
+      const btn100 = document.createElement('button');
+      btn100.type = 'button';
+      btn100.className = 'btn' + (lvl === 100 ? ' active' : ' secondary');
+      btn100.textContent = 'レベル100';
+      btn100.addEventListener('click', ()=>{ inst.level = 100; renderModal(inst); });
+      m_level.appendChild(btn50);
+      m_level.appendChild(btn100);
     }
 
     // フォルムボタンの判定ロジック（簡易ルール、メガストーンの X/Y 判定に使用）
@@ -1453,6 +1482,7 @@
           evInputs[k].value = (inst.ev && inst.ev[k]) || 0;
         }
         evToggleBtns[k].textContent = ((inst.ev && inst.ev[k]) || 0) === 252 ? '0' : '252';
+        updateEvTotalLine();
       }
 
       statsOrder.forEach(k=>{
@@ -1483,6 +1513,26 @@
 
     table.appendChild(tbody);
     m_stats.appendChild(table);
+
+    // 努力値合計（510を超えると赤字で警告表示）
+    const evTotalLine = document.createElement('div');
+    evTotalLine.style.textAlign = 'right';
+    evTotalLine.style.fontSize = '12px';
+    evTotalLine.style.marginTop = '4px';
+    function updateEvTotalLine(){
+      const sum = statsOrder.reduce((acc,k)=> acc + Number((inst.ev && inst.ev[k]) || 0), 0);
+      const remaining = 510 - sum;
+      evTotalLine.textContent = `努力値合計: ${sum} (残: ${remaining})`;
+      if(sum > 510){
+        evTotalLine.style.color = '#c00';
+        evTotalLine.style.fontWeight = '700';
+      } else {
+        evTotalLine.style.color = '';
+        evTotalLine.style.fontWeight = '';
+      }
+    }
+    updateEvTotalLine();
+    m_stats.appendChild(evTotalLine);
 
     // 技（2x2）とメモ、タグ
     m_more.innerHTML = '';
@@ -1597,6 +1647,7 @@
         level: 50,
         gender: '-', // 性別。"-"/"♂"/"♀" を想定（今のところ値のチェックはしない。GUI編集は後日対応）
         raised: 0,
+        shiny: 0, // 色違いフラグ。0=通常/1=色違い（GUIでの切り替えは後日対応）
         nature: NEUTRAL_NATURE_NAME,
         ability: '',
         item: '',

@@ -85,7 +85,15 @@
     /* モーダル */
     .modal{position:fixed;left:0;top:0;width:93%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);padding:16px;z-index:9000}
     .modal.open{display:flex}
-    .modal .panel{position:relative;width:100%;max-width:760px;background:var(--card);border-radius:12px;padding:12px;height:70vh;max-height:70vh;overflow:auto}
+    /* 編集ボタン（枠外）とパネルを縦に並べる外枠。幅の制約はここに持たせる */
+    .modal-stack{display:flex;flex-direction:column;align-items:center;width:100%;max-width:760px}
+    .edit-toggle-btn-outside{margin-bottom:8px}
+    .modal .panel{position:relative;width:100%;background:var(--card);border-radius:12px;padding:12px;height:70vh;max-height:70vh;overflow:auto}
+    /* 特性/道具/性格（左・幅固定） と 性別/育成済み/色違い（右） の2列グリッド。
+       左列の幅は「特性:デルタストリーム」(11文字)が収まる固定幅にし、右列の位置が左列の内容量で動かないようにする */
+    .m_props_grid{display:grid;grid-template-columns:170px 1fr;column-gap:12px;row-gap:4px;align-items:center;margin-top:6px}
+    .m_props_grid .meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .m_checkbox_label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0}
     /* モーダル内タイトルの余白を小さくする */
     #m_name{margin:3px 0}
   /* modal table styling */

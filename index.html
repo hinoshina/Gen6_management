@@ -127,27 +127,31 @@
   </div>
 
   <div id="modal" class="modal" role="dialog" aria-hidden="true">
-    <div class="panel">
-      <div class="row">
-        <p id="m_name">ポケモン名</p>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:3px">
-        <div id="m_props" style="flex:1">
-          <div id="m_ability_row" style="display:flex;align-items:center">
-            <div id="m_ability" class="meta"></div>
-          </div>
-          <div id="m_nature" class="meta" style="margin-top:2px"></div>
-          <!-- 道具とフォルムボタンを同じ行に配置（道具左、ボタン右） -->
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
-            <div id="m_item_prop" class="meta"></div>
-            <div style="margin-left:12px"><div class="form-buttons" id="formButtons"></div></div>
-          </div>
+    <div class="modal-stack">
+      <!-- 編集ボタン：モーダルの枠外（パネルの上）に配置 -->
+      <button id="editModalBtn" type="button" class="edit-toggle-btn edit-toggle-btn-outside">編集</button>
+      <div class="panel">
+        <div class="row">
+          <p id="m_name">ポケモン名</p>
+          <!-- レベルはフォルムボタンと同じ見た目の2択ボタンにする -->
+          <div class="form-buttons" id="m_level" style="margin-left:12px"></div>
         </div>
-        <!-- レベルをモーダル右端に表示 -->
-        <div id="m_level" class="meta" style="margin-left:12px;white-space:nowrap"></div>
+        <!-- 特性/道具/性格（左・幅固定）と 性別/育成済み/色違い（右） を2列で並べる -->
+        <div id="m_props_grid" class="m_props_grid">
+          <div id="m_ability" class="meta"></div>
+          <div id="m_gender" class="meta"></div>
+
+          <div id="m_item_prop" class="meta"></div>
+          <label class="m_checkbox_label"><input type="checkbox" id="m_raised_checkbox" disabled /> 育成済み</label>
+
+          <div id="m_nature" class="meta"></div>
+          <label class="m_checkbox_label"><input type="checkbox" id="m_shiny_checkbox" disabled /> 色違い</label>
+        </div>
+        <!-- フォルムボタン（盾/剣・メガ等）。道具欄の右下に絶対配置される（JS側で位置計算） -->
+        <div class="form-buttons" id="formButtons"></div>
+        <div id="m_stats" style="margin-top:8px"></div>
+        <div id="m_more" style="margin-top:8px"></div>
       </div>
-      <div id="m_stats" style="margin-top:8px"></div>
-      <div id="m_more" style="margin-top:8px"></div>
     </div>
     <!-- close button moved outside panel so it won't be clipped by panel's overflow -->
     <button id="closeModal" class="close-btn" aria-label="閉じる" style="font-size: 20px;">×</button>
