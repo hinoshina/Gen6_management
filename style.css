@@ -94,6 +94,8 @@
     .m_props_grid{display:grid;grid-template-columns:170px 1fr;column-gap:12px;row-gap:4px;align-items:center;margin-top:6px}
     .m_props_grid .meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .m_checkbox_label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0}
+    /* 性別/育成済み/色違いの文字サイズを、特性/道具/性格と同じ14pxに統一する */
+    #m_gender, .m_checkbox_label{font-size:14px}
     /* モーダル内タイトルの余白を小さくする */
     #m_name{margin:3px 0}
   /* modal table styling */
@@ -108,7 +110,7 @@
   .modal-table th:not(.label), .modal-table td:not(.label){width:calc((100% - 60px) / 6)}
   /* modal moves boxed */
   .modal-move{border:1px solid #e6e6e6;padding:4px 8px;border-radius:6px;text-align:center;background:#fff}
-  .memo-box{box-sizing:border-box;line-height:1.2em;height:calc(1.2em * 6 + 12px);overflow:auto;border:1px solid #eee;padding:6px;border-radius:6px;background:#fafafa;font-size:14px}
+  .memo-box{box-sizing:border-box;line-height:1.2em;height:calc(1.2em * 6 + 12px);overflow:auto;border:1px solid #eee;padding:6px;border-radius:6px;background:#fafafa;font-size:14px;white-space:pre-wrap;word-break:break-word}
   /* 検索タグ欄は常に2行分表示 */
   .tags-box{box-sizing:border-box;line-height:1.2em;height:calc(1.2em * 2 + 12px);overflow:auto;border:1px solid #eee;padding:6px;border-radius:6px;background:#fafafa;font-size:12px}
   /* モーダルヘッダの固定レイアウト：名前とタイプを左右に固定配置 */
@@ -123,6 +125,8 @@
   /* 名前行右端の編集ボタン */
   .edit-toggle-btn{flex:0 0 auto;margin-left:8px;background:#f1f1f1;border:1px solid #ccc;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;white-space:nowrap}
   .edit-toggle-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  /* モーダル枠外の編集ボタンは大きめにして目立たせる */
+  .edit-toggle-btn-outside{padding:10px 28px;font-size:16px;font-weight:700;border-radius:8px}
   /* 名前/道具/技などの編集用テキスト入力 */
   .edit-text-input{box-sizing:border-box;width:100%;font-size:14px;padding:2px 4px;border:1px solid #ccc;border-radius:4px}
   .edit-item-input{width:140px}

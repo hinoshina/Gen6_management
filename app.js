@@ -1296,12 +1296,12 @@
       const btn50 = document.createElement('button');
       btn50.type = 'button';
       btn50.className = 'btn' + (lvl !== 100 ? ' active' : ' secondary');
-      btn50.textContent = 'レベル50';
+      btn50.textContent = '50';
       btn50.addEventListener('click', ()=>{ inst.level = 50; renderModal(inst); });
       const btn100 = document.createElement('button');
       btn100.type = 'button';
       btn100.className = 'btn' + (lvl === 100 ? ' active' : ' secondary');
-      btn100.textContent = 'レベル100';
+      btn100.textContent = '100';
       btn100.addEventListener('click', ()=>{ inst.level = 100; renderModal(inst); });
       m_level.appendChild(btn50);
       m_level.appendChild(btn100);
