@@ -171,6 +171,8 @@
       // 技の候補は MOVES_DATA（技データ）のみから作る。
       // 既存インスタンスの技欄にMOVES_DATAに無い技名が入っていても、候補には出さない。
       window.SUGGEST.moves = Object.keys((typeof MOVES_DATA !== 'undefined' ? MOVES_DATA : {})).sort();
+      // 道具の候補は ITEMS_DATA（道具データ）のみから作る。ここに無い道具名でも保存自体は可能。
+      window.SUGGEST.items = ((typeof ITEMS_DATA !== 'undefined' ? ITEMS_DATA : [])).slice().sort();
       window.SUGGEST.types = typesOrder.slice();
     }catch(e){ console.warn('ensureDatalists failed', e); }
   }
@@ -1250,6 +1252,9 @@
         // 道具はDB保存の即時反映を廃止（編集完了ボタンでまとめて保存する）
         m_item_prop.appendChild(label);
         m_item_prop.appendChild(input);
+        // 道具名の候補（ITEMS_DATAのみから検索。候補に無い道具名でも保存は可能）
+        const itemsList = (window.SUGGEST && window.SUGGEST.items) ? window.SUGGEST.items : ((typeof ITEMS_DATA !== 'undefined' ? ITEMS_DATA : []));
+        attachSuggestionsToInput(input, itemsList, (value)=>{ inst.item = value; input.value = value; });
       } else {
         m_item_prop.textContent = `道具: ${inst.item || ''}`;
       }

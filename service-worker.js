@@ -5,7 +5,7 @@
 //
 // キャッシュを更新したい場合は CACHE_VERSION の数字を上げること
 // （古いバージョンのキャッシュは activate 時に自動的に破棄される）。
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = `gen6-app-cache-${CACHE_VERSION}`;
 
 // アプリの動作に必要なファイル一式（すべて同一オリジンのローカルファイルのみ）
