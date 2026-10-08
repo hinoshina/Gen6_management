@@ -536,6 +536,30 @@ const SPECIES_DATA = {
       "盾",
       "剣"
     ]
+  },
+  "レックウザ": {
+    "dexNo": 384,
+    "types": ["ドラゴン", "ひこう"],
+    "abilities": ["エアロック", "", ""],
+    "baseStats": { "hp": 105, "atk": 150, "def": 90, "spa": 150, "spd": 90, "spe": 95 },
+    "weight": 206.5,
+    "kind": "禁伝",
+    "stage": 1,
+    "final_stage": 1,
+    "forms": ["レックウザ", "メガレックウザ"],
+    "formButtons": ["通常", "メガ"]
+  },
+  "メガレックウザ": {
+    "dexNo": 384,
+    "types": ["ドラゴン", "ひこう"],
+    "abilities": ["デルタストリーム", "", ""],
+    "baseStats": { "hp": 105, "atk": 180, "def": 100, "spa": 180, "spd": 100, "spe": 115 },
+    "weight": 392.0,
+    "kind": "禁伝",
+    "stage": "メガ",
+    "final_stage": 1,
+    "forms": ["レックウザ", "メガレックウザ"],
+    "formButtons": ["通常", "メガ"]
   }
 };
 
@@ -935,3 +959,58 @@ const ITEMS_DATA = [
   "こんごうだま", "しらたま", "はっきんだま", "アクアカセット",
   "イナズマカセット", "ブレイズカセット", "フリーズカセット"
 ];
+
+// MEGA_STONES_DATA … メガストーン（等）と対応するポケモン・変化後フォームの対応表。
+//   species: 対象の種族名 / megaForm: SPECIES_DATA上のフォーム名 / buttonLabel: フォルムボタンの表示文字。
+//   対応する道具を持つ場合のみメガ扱いになる（レックウザは例外でアプリ側が技「ガリョウテンセイ」で判定）。
+const MEGA_STONES_DATA = {
+  "フシギバナイト": { "species": "フシギバナ", "megaForm": "メガフシギバナ", "buttonLabel": "メガ" },
+  "リザードナイトX": { "species": "リザードン", "megaForm": "メガリザードンX", "buttonLabel": "X" },
+  "リザードナイトY": { "species": "リザードン", "megaForm": "メガリザードンY", "buttonLabel": "Y" },
+  "カメックスナイト": { "species": "カメックス", "megaForm": "メガカメックス", "buttonLabel": "メガ" },
+  "スピアナイト": { "species": "スピアー", "megaForm": "メガスピアー", "buttonLabel": "メガ" },
+  "ピジョットナイト": { "species": "ピジョット", "megaForm": "メガピジョット", "buttonLabel": "メガ" },
+  "フーディナイト": { "species": "フーディン", "megaForm": "メガフーディン", "buttonLabel": "メガ" },
+  "ヤドランナイト": { "species": "ヤドラン", "megaForm": "メガヤドラン", "buttonLabel": "メガ" },
+  "ゲンガナイト": { "species": "ゲンガー", "megaForm": "メガゲンガー", "buttonLabel": "メガ" },
+  "ガルーラナイト": { "species": "ガルーラー", "megaForm": "メガガルーラー", "buttonLabel": "メガ" },
+  "カイロスナイト": { "species": "カイロス", "megaForm": "メガカイロス", "buttonLabel": "メガ" },
+  "ギャラドスナイト": { "species": "ギャラドス", "megaForm": "メガギャラドス", "buttonLabel": "メガ" },
+  "プテラナイト": { "species": "プテラ", "megaForm": "メガプテラ", "buttonLabel": "メガ" },
+  "ミュウツナイトX": { "species": "ミュウツー", "megaForm": "メガミュウツーX", "buttonLabel": "X" },
+  "ミュウツナイトY": { "species": "ミュウツー", "megaForm": "メガミュウツーY", "buttonLabel": "Y" },
+  "デンリュウナイト": { "species": "デンリュウ", "megaForm": "メガデンリュウ", "buttonLabel": "メガ" },
+  "ハガネールナイト": { "species": "ハガネール", "megaForm": "メガハガネール", "buttonLabel": "メガ" },
+  "ハッサムナイト": { "species": "ハッサム", "megaForm": "メガハッサム", "buttonLabel": "メガ" },
+  "ヘラクロスナイト": { "species": "ヘラクロス", "megaForm": "メガヘラクロス", "buttonLabel": "メガ" },
+  "ヘルガナイト": { "species": "ヘルガー", "megaForm": "メガヘルガー", "buttonLabel": "メガ" },
+  "バンギラスナイト": { "species": "バンギラス", "megaForm": "メガバンギラス", "buttonLabel": "メガ" },
+  "ジュカインナイト": { "species": "ジュカイン", "megaForm": "メガジュカイン", "buttonLabel": "メガ" },
+  "バシャーモナイト": { "species": "バシャーモ", "megaForm": "メガバシャーモ", "buttonLabel": "メガ" },
+  "ラグラージナイト": { "species": "ラグラージ", "megaForm": "メガラグラージ", "buttonLabel": "メガ" },
+  "サーナイトナイト": { "species": "サーナイト", "megaForm": "メガサーナイト", "buttonLabel": "メガ" },
+  "ヤミラミナイト": { "species": "ヤミラミ", "megaForm": "メガヤミラミ", "buttonLabel": "メガ" },
+  "クチートナイト": { "species": "クチート", "megaForm": "メガクチート", "buttonLabel": "メガ" },
+  "ボスゴドラナイト": { "species": "ボスゴドラ", "megaForm": "メガボスゴドラ", "buttonLabel": "メガ" },
+  "チャーレムナイト": { "species": "チャーレム", "megaForm": "メガチャーレム", "buttonLabel": "メガ" },
+  "ライボルトナイト": { "species": "ライボルト", "megaForm": "メガライボルト", "buttonLabel": "メガ" },
+  "サメハダナイト": { "species": "サメハダー", "megaForm": "メガサメハダー", "buttonLabel": "メガ" },
+  "バクーダナイト": { "species": "バクーダ", "megaForm": "メガバクーダ", "buttonLabel": "メガ" },
+  "チルタリスナイト": { "species": "チルタリス", "megaForm": "メガチルタリス", "buttonLabel": "メガ" },
+  "ジュペッタナイト": { "species": "ジュペッタ", "megaForm": "メガジュペッタ", "buttonLabel": "メガ" },
+  "アブソルナイト": { "species": "アブソル", "megaForm": "メガアブソル", "buttonLabel": "メガ" },
+  "オニゴーリナイト": { "species": "オニゴーリ", "megaForm": "メガオニゴーリ", "buttonLabel": "メガ" },
+  "ボーマンダナイト": { "species": "ボーマンダ", "megaForm": "メガボーマンダ", "buttonLabel": "メガ" },
+  "メタグロスナイト": { "species": "メタグロス", "megaForm": "メガメタグロス", "buttonLabel": "メガ" },
+  "ラティアスナイト": { "species": "ラティアス", "megaForm": "メガラティアス", "buttonLabel": "メガ" },
+  "ラティオスナイト": { "species": "ラティオス", "megaForm": "メガラティオス", "buttonLabel": "メガ" },
+  "ミミロップナイト": { "species": "ミミロップ", "megaForm": "メガミミロップ", "buttonLabel": "メガ" },
+  "ガブリアスナイト": { "species": "ガブリアス", "megaForm": "メガガブリアス", "buttonLabel": "メガ" },
+  "ルカリオナイト": { "species": "ルカリオ", "megaForm": "メガルカリオ", "buttonLabel": "メガ" },
+  "ユキノオナイト": { "species": "ユキノオー", "megaForm": "メガユキノオー", "buttonLabel": "メガ" },
+  "エルレイドナイト": { "species": "エルレイド", "megaForm": "メガエルレイド", "buttonLabel": "メガ" },
+  "タブンネナイト": { "species": "タブンネ", "megaForm": "メガタブンネ", "buttonLabel": "メガ" },
+  "ディアンシナイト": { "species": "ディアンシー", "megaForm": "メガディアンシー", "buttonLabel": "メガ" },
+  "あいいろのたま": { "species": "カイオーガ", "megaForm": "ゲンシカイオーガ", "buttonLabel": "ゲンシ" },
+  "べにいろのたま": { "species": "グラードン", "megaForm": "ゲンシグラードン", "buttonLabel": "ゲンシ" }
+};

@@ -54,33 +54,28 @@
     }
   }
 
-  // インスタンスの道具からメガ関連グループを判定（X専用/Y専用/汎用メガ/該当なし）
-  function computeItemGroup(inst){
-    const itemRaw = ((inst && inst.item) || '').toLowerCase();
-    if(!itemRaw) return null;
-    if(/x/i.test(itemRaw) && /ナイト|メガ|ストーン|stone|mega/i.test(itemRaw)) return 'megaX';
-    if(/y/i.test(itemRaw) && /ナイト|メガ|ストーン|stone|mega/i.test(itemRaw)) return 'megaY';
-    if(/ナイト|メガ|メガストーン|ストーン|stone|mega/i.test(itemRaw)) return 'mega';
+  // 現在の個体が「メガ（等）状態になれるか」を判定し、対応するメガフォーム名を返す（なければ null）
+  // ・道具が MEGA_STONES_DATA の対応表に載っており、かつ種族が一致する場合のみ有効
+  // ・例外：レックウザは技に「ガリョウテンセイ」があればメガ扱い（道具は無関係）
+  function getActiveMegaFormName(inst){
+    if(!inst) return null;
+    if(inst.species === 'レックウザ' && Array.isArray(inst.moves) && inst.moves.includes('ガリョウテンセイ')) return 'メガレックウザ';
+    const table = (typeof MEGA_STONES_DATA !== 'undefined') ? MEGA_STONES_DATA : {};
+    const info = Object.prototype.hasOwnProperty.call(table, inst.item) ? table[inst.item] : null;
+    if(info && info.species === inst.species) return info.megaForm;
     return null;
   }
 
   // baseName の種族データが持つ forms/formButtons から、条件に合う現在のフォーム名を解決する
-  // opts: { isMega: boolean, itemGroup: 'megaX'|'megaY'|'mega'|null, formChoice: 'shield'|'blade'|null }
+  // opts: { isMega: boolean, megaFormName: string|null, formChoice: 'shield'|'blade'|null }
   function pickFormName(baseName, opts){
     opts = opts || {};
     const sp = DATA.species[baseName];
     if(!sp || !sp.forms || sp.forms.length <= 1) return baseName;
     const forms = sp.forms;
     const formButtons = sp.formButtons || [];
-    const megaCandidates = forms.filter(n => DATA.species[n] && DATA.species[n].stage === 'メガ');
-    if(opts.isMega && megaCandidates.length){
-      if(opts.itemGroup === 'megaX'){
-        const f = megaCandidates.find(n=>/X/i.test(n)); if(f) return f;
-      }
-      if(opts.itemGroup === 'megaY'){
-        const f = megaCandidates.find(n=>/Y/i.test(n)); if(f) return f;
-      }
-      return megaCandidates[0];
+    if(opts.isMega && opts.megaFormName && forms.includes(opts.megaFormName) && DATA.species[opts.megaFormName]){
+      return opts.megaFormName;
     }
     if(opts.formChoice){
       const idx = formButtons.findIndex(lbl => (opts.formChoice==='shield' && lbl==='盾') || (opts.formChoice==='blade' && lbl==='剣'));
@@ -187,9 +182,7 @@
         const e = DATA.species[inst._form];
         if(e && e.stage === 'メガ') return true;
       }
-      const item = (inst.item||'').toString();
-      if(!item) return false;
-      return /メガ|ナイト|ストーン|stone|mega/i.test(item);
+      return !!getActiveMegaFormName(inst);
     }catch(e){ return false; }
   }
 
@@ -412,9 +405,9 @@
       if(normAbilityQ){
         // メガシンカ状態の特性も検索対象に含める
         const abilityAdvState = getAdvFilterFormState();
-        const abilityItemGroup = computeItemGroup(inst);
+        const abilityMegaFormName = getActiveMegaFormName(inst);
         const abilityIsMega = abilityAdvState.isMega && hasMegaStone(inst);
-        const abilityResolvedName = pickFormName(inst.species, {isMega: abilityIsMega, itemGroup: abilityItemGroup, formChoice: abilityAdvState.form});
+        const abilityResolvedName = pickFormName(inst.species, {isMega: abilityIsMega, megaFormName: abilityMegaFormName, formChoice: abilityAdvState.form});
         const abilityResolvedEntry = DATA.species[abilityResolvedName];
         let searchAbility = inst.ability || '';
         if(abilityResolvedEntry && abilityResolvedEntry.stage === 'メガ' && abilityResolvedEntry.abilities && abilityResolvedEntry.abilities[0]){
@@ -436,9 +429,9 @@
       if(typeRows.length>0){
         // メガシンカ/フォルム状態のタイプと特性を取得
         const filterAdvState = getAdvFilterFormState();
-        const filterItemGroup = computeItemGroup(inst);
+        const filterMegaFormName = getActiveMegaFormName(inst);
         const filterIsMega = filterAdvState.isMega && hasMegaStone(inst);
-        const filterResolvedName = pickFormName(inst.species, {isMega: filterIsMega, itemGroup: filterItemGroup, formChoice: filterAdvState.form});
+        const filterResolvedName = pickFormName(inst.species, {isMega: filterIsMega, megaFormName: filterMegaFormName, formChoice: filterAdvState.form});
         const filterResolvedEntry = DATA.species[filterResolvedName] || sp;
         let searchTypes = filterResolvedEntry.types || sp?.types || [];
         let searchAbility = inst.ability || '';
@@ -487,9 +480,9 @@
         const includeMemo = (memoToggleBtn && memoToggleBtn.classList.contains('active'));
         // メガシンカ/フォルム状態のタイプと特性を取得
         const globalAdvState = getAdvFilterFormState();
-        const globalItemGroup = computeItemGroup(inst);
+        const globalMegaFormName = getActiveMegaFormName(inst);
         const globalIsMega = globalAdvState.isMega && hasMegaStone(inst);
-        const globalResolvedName = pickFormName(inst.species, {isMega: globalIsMega, itemGroup: globalItemGroup, formChoice: globalAdvState.form});
+        const globalResolvedName = pickFormName(inst.species, {isMega: globalIsMega, megaFormName: globalMegaFormName, formChoice: globalAdvState.form});
         const globalResolvedEntry = DATA.species[globalResolvedName] || sp;
         let globalSearchTypes = globalResolvedEntry.types || sp?.types || [];
         let globalSearchAbility = inst.ability || '';
@@ -559,9 +552,9 @@
   // types (縦並び) と 種族名を横並びに配置（タイプの右にポケモン名）
   // 詳細検索のメガボタン状態を反映してタイプを決定
   const advStateForTypes = getAdvFilterFormState();
-  const itemGroupForCard = computeItemGroup(inst);
+  const megaFormNameForCard = getActiveMegaFormName(inst);
   const isMegaForCard = advStateForTypes.isMega && hasMegaStone(inst);
-  const resolvedFormNameForCard = pickFormName(inst.species, {isMega: isMegaForCard, itemGroup: itemGroupForCard, formChoice: advStateForTypes.form});
+  const resolvedFormNameForCard = pickFormName(inst.species, {isMega: isMegaForCard, megaFormName: megaFormNameForCard, formChoice: advStateForTypes.form});
   const resolvedEntryForCard = DATA.species[resolvedFormNameForCard] || sp;
   let displayTypes = resolvedEntryForCard.types || sp?.types || [];
   const typesStack = document.createElement('div'); typesStack.className = 'types-stack';
@@ -744,12 +737,9 @@
     return { form: formState, isMega };
   }
 
-  // インスタンスがメガストーンを所持しているか判定
+  // 対応するメガストーン所持（またはレックウザの専用技）でメガ可能か
   function hasMegaStone(inst){
-    if(!inst.item) return false;
-    const item = inst.item.toLowerCase();
-    // メガストーンの判定（「メガストーン」を含むか、特定の形式）
-    return item.includes('メガストーン');
+    return !!getActiveMegaFormName(inst);
   }
 
   function renderComputedStats(inst){
@@ -761,9 +751,9 @@
       resolvedName = inst._form;
     } else {
       const advState = getAdvFilterFormState();
-      const itemGroup = computeItemGroup(inst);
+      const megaFormName = getActiveMegaFormName(inst);
       const isMega = advState.isMega && hasMegaStone(inst);
-      resolvedName = pickFormName(inst.species, {isMega, itemGroup, formChoice: advState.form});
+      resolvedName = pickFormName(inst.species, {isMega, megaFormName, formChoice: advState.form});
     }
     const sp = DATA.species[resolvedName] || DATA.species[inst.species];
     const baseStats = (sp && sp.baseStats) ? sp.baseStats : {hp:0,atk:0,def:0,spa:0,spd:0,spe:0};
@@ -1312,8 +1302,10 @@
       m_level.appendChild(btn100);
     }
 
-    // フォルムボタンの判定ロジック（簡易ルール、メガストーンの X/Y 判定に使用）
-    const itemGroup = computeItemGroup(inst);
+    // 対応するメガストーン等から決まる、表示可能なメガフォーム名
+    const activeMegaFormName = getActiveMegaFormName(inst);
+    // 道具/技の変更でメガ条件を満たさなくなった場合、メガ状態の選択は解除する
+    if(inst._form && inst._form !== activeMegaFormName && DATA.species[inst._form] && DATA.species[inst._form].stage === 'メガ') inst._form = null;
 
     // フォルム/メガ等のボタンを species データに基づいて自動生成する
     // 押されているボタンは青（.btn）、未選択は灰（.btn.secondary）で表現
@@ -1338,12 +1330,14 @@
       sp.forms.forEach((formName, idx)=>{
         const targetEntry = DATA.species[formName];
         if(!targetEntry) return;
-        const label = (sp.formButtons && sp.formButtons[idx]) ? sp.formButtons[idx] : formName;
+        let label = (sp.formButtons && sp.formButtons[idx]) ? sp.formButtons[idx] : formName;
         const isMegaForm = targetEntry.stage === 'メガ';
+        if(isMegaForm && typeof MEGA_STONES_DATA !== 'undefined'){
+          const stoneInfo = MEGA_STONES_DATA[inst.item];
+          if(stoneInfo && stoneInfo.megaForm === formName && stoneInfo.buttonLabel) label = stoneInfo.buttonLabel;
+        }
         if(isMegaForm){
-          if(!hasMegaStone(inst)) return; // メガストーン未所持なら表示しない
-          if(itemGroup === 'megaX' && !/X/i.test(label)) return;
-          if(itemGroup === 'megaY' && !/Y/i.test(label)) return;
+          if(formName !== activeMegaFormName) return; // 対応するメガストーン所持時のみ、そのフォームだけ表示
         }
         const active = currentFormName === formName;
         formButtons.appendChild(makeBtn(label, active, ()=>{ inst._form = formName; }));

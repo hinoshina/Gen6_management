@@ -118,7 +118,7 @@ const INITIAL_INSTANCES = [
     "shiny": 0,
     "nature": "おくびょう",
     "ability": "ふゆう",
-    "item": "メガストーン",
+    "item": "ラティアスナイト",
     "ev": {
       "H": 252,
       "A": 0,
@@ -153,7 +153,7 @@ const INITIAL_INSTANCES = [
     "shiny": 0,
     "nature": "おくびょう",
     "ability": "もうか",
-    "item": "メガストーンY",
+    "item": "リザードナイトY",
     "ev": {
       "H": 172,
       "A": 0,
