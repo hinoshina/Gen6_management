@@ -1239,12 +1239,14 @@
         input.type = 'text'; input.className = 'edit-text-input edit-item-input';
         input.value = inst.item || '';
         input.addEventListener('input', ()=>{ inst.item = input.value; });
+        // 入力確定時にメガストーン対応のボタン表示などを更新する
+        input.addEventListener('change', ()=>{ inst.item = input.value; renderModal(inst); });
         // 道具はDB保存の即時反映を廃止（編集完了ボタンでまとめて保存する）
         m_item_prop.appendChild(label);
         m_item_prop.appendChild(input);
         // 道具名の候補（ITEMS_DATAのみから検索。候補に無い道具名でも保存は可能）
         const itemsList = (window.SUGGEST && window.SUGGEST.items) ? window.SUGGEST.items : ((typeof ITEMS_DATA !== 'undefined' ? ITEMS_DATA : []));
-        attachSuggestionsToInput(input, itemsList, (value)=>{ inst.item = value; input.value = value; });
+        attachSuggestionsToInput(input, itemsList, (value)=>{ inst.item = value; input.value = value; renderModal(inst); });
       } else {
         m_item_prop.textContent = `道具: ${inst.item || ''}`;
       }
@@ -1271,17 +1273,35 @@
       }
     }
 
-    // 性別（今のところ表示のみ。編集機能は後日対応）
+    // 性別（編集モード時はセレクトで変更。"-" / "♂" / "♀"。それ以外の値が入っている場合も候補に残す）
     if(m_gender){
-      m_gender.textContent = `性別: ${inst.gender || '-'}`;
+      m_gender.innerHTML = '';
+      if(modalEditMode){
+        const label = document.createElement('span'); label.textContent = '性別: ';
+        const select = document.createElement('select'); select.className = 'edit-select';
+        const opts = ['-', '♂', '♀'];
+        const cur = (inst.gender === undefined || inst.gender === null || inst.gender === '') ? '-' : String(inst.gender);
+        if(!opts.includes(cur)) opts.push(cur);
+        opts.forEach(v=>{ const o = document.createElement('option'); o.value = v; o.textContent = v; select.appendChild(o); });
+        select.value = cur;
+        select.addEventListener('change', ()=>{ inst.gender = select.value; });
+        m_gender.appendChild(label);
+        m_gender.appendChild(select);
+      } else {
+        m_gender.textContent = `性別: ${inst.gender || '-'}`;
+      }
     }
 
-    // 育成済み / 色違い チェックボックス（0/1を反映するだけの表示。切り替えは後日、編集モードで対応予定）
+    // 育成済み / 色違い チェックボックス（編集モード時のみ切り替え可能。値は 0/1 で保持）
     if(m_raised_checkbox){
       m_raised_checkbox.checked = Number(inst.raised) === 1;
+      m_raised_checkbox.disabled = !modalEditMode;
+      m_raised_checkbox.onchange = ()=>{ inst.raised = m_raised_checkbox.checked ? 1 : 0; };
     }
     if(m_shiny_checkbox){
       m_shiny_checkbox.checked = Number(inst.shiny) === 1;
+      m_shiny_checkbox.disabled = !modalEditMode;
+      m_shiny_checkbox.onchange = ()=>{ inst.shiny = m_shiny_checkbox.checked ? 1 : 0; };
     }
 
     if(m_level){
